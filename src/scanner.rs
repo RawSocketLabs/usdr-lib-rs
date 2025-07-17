@@ -51,7 +51,6 @@ pub async fn scan_frequency_range(
                 center_freq: i,
                 peaks,
             };
-
             let _ = scan_res_tx.send(scan_results).await.unwrap();
             sleep(sleep_time).await;
         }

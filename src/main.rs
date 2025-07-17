@@ -3,18 +3,18 @@ use std::time::Duration;
 use clap::Parser;
 use rtlsdr::RTLSDRDevice;
 use sdr::{
-    device::{Device, DeviceType, file::WavFile},
+    device::{Device, file::WavFile},
     types::Spectrum,
 };
 use tokio::sync::mpsc;
 
 use crate::{
+    sample::Sample,
     scanner::{ScanResults, scan_frequency_range},
-    sdrreader::initiate_sdr_reader,
 };
 
+mod sample;
 mod scanner;
-mod sdrreader;
 
 #[derive(Parser, Debug)]
 #[clap(name = "sdrscanner", about = "Scan a frequency range for signal peaks")]
@@ -49,23 +49,25 @@ async fn main() {
     let (freq_tx, freq_rx) = mpsc::channel::<u32>(1);
     let (scan_tx, mut scan_rx) = mpsc::channel::<ScanResults>(50);
 
-    let device = if args.file.is_empty() {
-        DeviceType::Rtlsdr(Device::<RTLSDRDevice>::new(args.sample_rate))
-    } else {
-        DeviceType::WavFile(Device::<WavFile>::new(args.file))
-    };
-
     // spawn a task for sdr reading
-    tokio::spawn(async move {
-        initiate_sdr_reader(
-            current_spectrum_tx,
-            freq_rx,
-            args.sample_rate,
-            args.fft_size,
-            args.start_freq,
-            device.into(), // How do we send a generic into a function without knowing the type in advance?  Attempted to use the enum approach.
-        )
-        .await
+    std::thread::spawn(move || {
+        if args.file.is_empty() {
+            Device::<RTLSDRDevice>::new(args.sample_rate).sample(
+                current_spectrum_tx,
+                freq_rx,
+                args.sample_rate,
+                args.fft_size,
+                args.start_freq,
+            );
+        } else {
+            Device::<WavFile>::new(args.file).sample(
+                current_spectrum_tx,
+                freq_rx,
+                args.sample_rate,
+                args.fft_size,
+                args.start_freq,
+            );
+        };
     });
 
     tokio::spawn(async move {
@@ -81,9 +83,11 @@ async fn main() {
         .await
     });
 
-    tokio::select! {
-        scan_res = scan_rx.recv() => {
-                println!("RES: {:?}", scan_res);
-            }
+    loop {
+        tokio::select! {
+            scan_res = scan_rx.recv() => {
+                    println!("RES: {:?}", scan_res);
+                }
+        }
     }
 }
