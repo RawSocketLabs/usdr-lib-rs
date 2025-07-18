@@ -3,7 +3,7 @@ use std::time::Duration;
 use smoothed_z_score::PeaksDetector;
 use tokio::time::sleep;
 
-use sdr::{Sample, detect_peaks};
+use sdr::{detect_peaks, Sample};
 
 use crate::scan::{ScanChannels, ScanParams, ScanResults};
 
@@ -16,7 +16,11 @@ async fn identify_peaks_in_range(mut channels: ScanChannels, params: ScanParams)
 
     loop {
         for i in params.range.clone().step_by((params.rate / 4) as usize) {
-            _ = channels.freq_tx.send(i);
+            for channel in &channels.freq_tx {
+                let _ = channel.try_send(i);
+                while let Ok(_) = channels.spectrum_rx.try_recv() {}
+                channels.flow_tx.send(true).await.unwrap();
+            }
             sleep(Duration::from_millis(100)).await;
 
             let mut count = 1.0;
@@ -35,11 +39,12 @@ async fn identify_peaks_in_range(mut channels: ScanChannels, params: ScanParams)
                     .collect();
                 count += 1.0;
                 if count > 50.0 {
-                    while let Ok(_) = channels.spectrum_rx.try_recv() {}
+                    channels.flow_tx.send(false).await.unwrap();
                     break;
                 }
             }
-            let peaks = detect_peaks(average_spectrum, PeaksDetector::new(params.lag, 3.0, 0.5));
+            // eprintln!("{} ({} - {}) || {:?}", i, i-1000000, i+1000000, if !average_spectrum.is_empty() {average_spectrum[0]} else {Sample::new(0, 0.0)});
+            let peaks = detect_peaks(average_spectrum, PeaksDetector::new(params.lag, 5.0, 0.5));
             let scan_results = ScanResults {
                 center_freq: i,
                 peaks,

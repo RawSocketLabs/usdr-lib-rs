@@ -4,4 +4,4 @@ mod structs;
 mod traits;
 
 pub use api::sample;
-pub use structs::{SampleChannels, SampleParams};
+pub use structs::*;

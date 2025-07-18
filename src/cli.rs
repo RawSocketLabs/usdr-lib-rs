@@ -26,4 +26,12 @@ pub struct Cli {
     /// File path to IQ recording for playback
     #[clap(long, default_value = "")]
     pub file: String,
+
+    /// Full TUI display
+    #[clap(long, action)]
+    pub tui: bool,
+
+    /// Bandwidth window for detecting peaks
+    #[clap(long, default_value = "12500")]
+    pub bandwidth: u32,
 }

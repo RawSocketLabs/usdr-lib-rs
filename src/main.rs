@@ -1,14 +1,16 @@
 mod cli;
+mod display;
 mod init;
 mod report;
 mod sample;
 mod scan;
+mod tui;
 
 // THIRD PARTY CRATES
 use clap::Parser;
 
 // LOCAL CRATES
-use crate::{cli::Cli, init::init, report::report};
+use crate::{cli::Cli, init::init};
 
 #[tokio::main]
 async fn main() {
@@ -16,14 +18,14 @@ async fn main() {
     let args = Cli::parse();
 
     // Initialize channels and parameters for sampling and scanning
-    let (sample, scan, scan_rx) = init(&args);
+    let (sample, scan, display) = init(&args);
 
     // spawn a dedicated thread for sampling from the sdr
-    sample::sample(args, sample.channels, sample.params);
+    sample::sample(args.file, args.rate, sample.channels, sample.params);
 
     // Spawn a task for scanning the spectrum for signals
     scan::scan(scan.channels, scan.params);
 
     // report the scan results
-    report(scan_rx).await;
+    display::display(args.tui, display).await;
 }

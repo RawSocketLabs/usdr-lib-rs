@@ -1,7 +1,11 @@
+use sdr::Spectrum;
 use std::{ops::Range, time::Duration};
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use sdr::Spectrum;
+pub struct ScanArgs {
+    pub channels: ScanChannels,
+    pub params: ScanParams,
+}
 
 #[derive(Debug)]
 pub struct ScanResults {
@@ -10,9 +14,10 @@ pub struct ScanResults {
 }
 
 pub struct ScanChannels {
-    pub freq_tx: Sender<u32>,
+    pub freq_tx: Vec<Sender<u32>>,
     pub spectrum_rx: Receiver<Spectrum>,
     pub result_tx: Sender<ScanResults>,
+    pub flow_tx: Sender<bool>,
 }
 
 pub struct ScanParams {

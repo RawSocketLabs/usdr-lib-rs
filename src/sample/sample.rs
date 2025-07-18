@@ -1,9 +1,10 @@
-use std::f32::consts::PI;
 use std::sync::Arc;
 
 use rustfft::{Fft, FftPlanner};
 
-use sdr::{Device, SdrControl, compute_spectrum, remove_dc_offset};
+use sdr::{
+    Device, SdrControl, apply_hann_window, compute_hann_window, compute_spectrum, remove_dc_offset,
+};
 
 use crate::sample::structs::{SampleChannels, SampleParams};
 use crate::sample::traits::Sample;
@@ -12,9 +13,16 @@ impl<T: SdrControl> Sample<T> for Device<T> {
     fn sample(&mut self, mut channels: SampleChannels, params: SampleParams) {
         let (fft, hann_window, mut current_freq) = init(self, &params);
 
+        let mut flow = false;
         loop {
+            match channels.flow_rx.try_recv() {
+                Ok(f) => flow = f,
+                Err(_) => (),
+            }
             update_frequency_on_change(self, &mut channels, &mut current_freq);
-            send_current_spectrum(self, &channels, &params, &*fft, &hann_window, current_freq);
+            if flow {
+                send_current_spectrum(self, &channels, &params, &*fft, &hann_window, current_freq);
+            }
         }
     }
 }
@@ -26,12 +34,7 @@ fn init<T: SdrControl>(
     let mut planner = FftPlanner::new();
     let fft = planner.plan_fft_forward(params.fft_size);
     // Precompute Hann window for FFT_SIZE
-    let hann_window: Vec<f32> = (0..params.fft_size)
-        .map(|n| {
-            let theta = 2.0 * PI * (n as f32) / ((params.fft_size - 1) as f32);
-            0.5 * (1.0 - theta.cos())
-        })
-        .collect();
+    let hann_window = compute_hann_window(params.fft_size as u32);
 
     device
         .set_center_frequency(params.freq)
@@ -64,15 +67,12 @@ fn send_current_spectrum<T: SdrControl>(
         remove_dc_offset(&mut iq_samples);
 
         // Apply Hann window to IQ samples
-        for (i, sample) in iq_samples.iter_mut().enumerate() {
-            let w = hann_window[i];
-            sample.re *= w;
-            sample.im *= w;
-        }
+        apply_hann_window(&mut iq_samples, hann_window);
 
         // Compute the spectrum and send it through the channel
         if let Ok(spectrum) = compute_spectrum(params.rate, fft, current_freq, iq_samples) {
-            let _ = channels.spectrum_tx.try_send(spectrum);
+            let _ = channels.spectrum_tx_mpsc.try_send(spectrum.clone());
+            let _ = channels.spectrum_tx_watch.send(spectrum);
         }
     }
 }
