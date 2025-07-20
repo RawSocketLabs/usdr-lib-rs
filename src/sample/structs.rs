@@ -1,4 +1,7 @@
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{
+    mpsc::{Receiver, Sender},
+    watch,
+};
 
 use sdr::Spectrum;
 
@@ -9,10 +12,10 @@ pub struct SampleArgs {
 
 /// Channels for sending and receiving data during sampling.
 pub struct SampleChannels {
-    pub spectrum_tx_mpsc: mpsc::Sender<Spectrum>,
+    pub spectrum_tx_mpsc: Sender<Spectrum>,
     pub spectrum_tx_watch: watch::Sender<Spectrum>,
-    pub freq_rx: mpsc::Receiver<u32>,
-    pub flow_rx: mpsc::Receiver<bool>,
+    pub freq_rx: Receiver<u32>,
+    pub flow_rx: Receiver<bool>,
 }
 
 /// Parameters for sampling, including sample rate, frequency, and FFT size.

@@ -24,11 +24,11 @@ pub struct Cli {
     pub fft_size: usize,
 
     /// File path to IQ recording for playback
-    #[clap(long, default_value = "")]
-    pub file: String,
+    #[clap(long, group = "file_source")]
+    pub file: Option<String>,
 
     /// Denote that the input IQ file is raw IQ data and not a WAV file.
-    #[clap(long, action)]
+    #[clap(long, action, requires = "file_source")]
     pub raw: bool,
 
     /// Full TUI display
