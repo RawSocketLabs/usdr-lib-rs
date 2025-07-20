@@ -3,7 +3,7 @@ use std::time::Duration;
 
 // THIRD PARTY CRATES
 use tokio::sync::{
-    mpsc::{Receiver, channel},
+    mpsc::{channel},
     watch,
 };
 

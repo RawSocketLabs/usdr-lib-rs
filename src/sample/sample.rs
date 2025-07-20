@@ -20,9 +20,15 @@ impl<T: SdrControl> Sample<T> for Device<T> {
                 Err(_) => (),
             }
             update_frequency_on_change(self, &mut channels, &mut current_freq);
-            if flow {
-                send_current_spectrum(self, &channels, &params, &*fft, &hann_window, current_freq);
-            }
+            send_current_spectrum(
+                self,
+                &channels,
+                &params,
+                &*fft,
+                &hann_window,
+                current_freq,
+                flow,
+            );
         }
     }
 }
@@ -61,6 +67,7 @@ fn send_current_spectrum<T: SdrControl>(
     fft: &dyn Fft<f32>,
     hann_window: &Vec<f32>,
     current_freq: u32,
+    flow: bool,
 ) {
     if let Ok(mut iq_samples) = device.read_raw_spectrum(params.fft_size) {
         // Remove DC offset to avoid dip at center frequency
@@ -71,7 +78,9 @@ fn send_current_spectrum<T: SdrControl>(
 
         // Compute the spectrum and send it through the channel
         if let Ok(spectrum) = compute_spectrum(params.rate, fft, current_freq, iq_samples) {
-            let _ = channels.spectrum_tx_mpsc.try_send(spectrum.clone());
+            if flow {
+                let _ = channels.spectrum_tx_mpsc.try_send(spectrum.clone());
+            }
             let _ = channels.spectrum_tx_watch.send(spectrum);
         }
     }

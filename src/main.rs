@@ -21,7 +21,7 @@ async fn main() {
     let (sample, scan, display) = init(&args);
 
     // spawn a dedicated thread for sampling from the sdr
-    sample::sample(args.file, args.rate, sample.channels, sample.params);
+    sample::sample(args.file, args.raw, args.rate, sample.channels, sample.params);
 
     // Spawn a task for scanning the spectrum for signals
     scan::scan(scan.channels, scan.params);

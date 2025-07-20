@@ -27,6 +27,10 @@ pub struct Cli {
     #[clap(long, default_value = "")]
     pub file: String,
 
+    /// Denote that the input IQ file is raw IQ data and not a WAV file.
+    #[clap(long, action)]
+    pub raw: bool,
+
     /// Full TUI display
     #[clap(long, action)]
     pub tui: bool,
