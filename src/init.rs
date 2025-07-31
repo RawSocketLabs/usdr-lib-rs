@@ -8,7 +8,7 @@ use tokio::sync::{
 };
 
 // REMOTE CRATES
-use sdr::Spectrum;
+use sdr::FreqBlock;
 
 // LOCAL CRATES
 use crate::{
@@ -22,8 +22,8 @@ pub fn init(args: &Cli) -> (SampleArgs, ScanArgs, DisplayArgs) {
     let lag: usize = (args.bandwidth / (args.rate / 4 / args.fft_size as u32)) as usize; // a LAG rate that equates to twice the target bandwidth
 
     // Create multiple channels for spectrum - send vec of channels to anywhere that needs them
-    let (scan_spectrum_tx, scan_spectrum_rx) = channel::<Spectrum>(500);
-    let (display_spectrum_tx, display_spectrum_rx) = watch::channel::<Spectrum>(Spectrum::new());
+    let (scan_spectrum_tx, scan_spectrum_rx) = channel::<FreqBlock>(500);
+    let (display_spectrum_tx, display_spectrum_rx) = watch::channel::<FreqBlock>(FreqBlock::new());
     let (sample_freq_tx, sample_freq_rx) = channel::<u32>(1);
     let (display_freq_tx, display_freq_rx) = channel::<u32>(1);
     let (scan_tx, scan_rx) = channel::<ScanResults>(50);

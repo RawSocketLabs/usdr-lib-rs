@@ -1,6 +1,6 @@
 use tokio::sync::{mpsc::Receiver, watch};
 
-use sdr::Spectrum;
+use sdr::FreqBlock;
 
 use crate::scan::ScanResults;
 
@@ -10,7 +10,7 @@ pub struct DisplayArgs {
 }
 
 pub struct DisplayChannels {
-    pub spectrum_rx: watch::Receiver<Spectrum>,
+    pub spectrum_rx: watch::Receiver<FreqBlock>,
     pub freq_rx: Receiver<u32>,
     pub scan_rx: Receiver<ScanResults>,
 }

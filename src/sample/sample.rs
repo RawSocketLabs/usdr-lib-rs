@@ -69,7 +69,7 @@ fn send_current_spectrum<T: SdrControl>(
     current_freq: u32,
     flow: bool,
 ) {
-    if let Ok(mut iq_samples) = device.read_raw_spectrum(params.fft_size) {
+    if let Ok(mut iq_samples) = device.read_raw_iq(params.fft_size) {
         // Remove DC offset to avoid dip at center frequency
         remove_dc_offset(&mut iq_samples);
 

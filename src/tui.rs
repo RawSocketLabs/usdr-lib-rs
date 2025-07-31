@@ -9,7 +9,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
 };
-use sdr::Spectrum;
+use sdr::FreqBlock;
 use std::thread;
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch};
@@ -17,13 +17,13 @@ use tokio::sync::{mpsc, watch};
 use crate::scan::ScanResults;
 
 pub struct App {
-    current_spectrum_rx: watch::Receiver<Spectrum>,
+    current_spectrum_rx: watch::Receiver<FreqBlock>,
     frequency_rx: mpsc::Receiver<u32>,
     sample_rate: u32,
     scan_rx: mpsc::Receiver<ScanResults>,
     x_bounds: [f64; 2],
     y_bounds: [f64; 2],
-    current_spectrum: Spectrum,
+    current_spectrum: FreqBlock,
     should_quit: bool,
     frequency: u32,
     latest_scan_results: Option<ScanResults>,
@@ -108,7 +108,7 @@ impl App {
     }
 
     pub fn new(
-        current_spectrum_rx: watch::Receiver<Spectrum>,
+        current_spectrum_rx: watch::Receiver<FreqBlock>,
         frequency_rx: mpsc::Receiver<u32>,
         scan_rx: mpsc::Receiver<ScanResults>,
         sample_rate: u32,

@@ -3,7 +3,7 @@ use tokio::sync::{
     watch,
 };
 
-use sdr::Spectrum;
+use sdr::FreqBlock;
 
 pub struct SampleArgs {
     pub channels: SampleChannels,
@@ -12,8 +12,8 @@ pub struct SampleArgs {
 
 /// Channels for sending and receiving data during sampling.
 pub struct SampleChannels {
-    pub spectrum_tx_mpsc: Sender<Spectrum>,
-    pub spectrum_tx_watch: watch::Sender<Spectrum>,
+    pub spectrum_tx_mpsc: Sender<FreqBlock>,
+    pub spectrum_tx_watch: watch::Sender<FreqBlock>,
     pub freq_rx: Receiver<u32>,
     pub flow_rx: Receiver<bool>,
 }

@@ -3,7 +3,7 @@ use std::time::Duration;
 use smoothed_z_score::PeaksDetector;
 use tokio::time::sleep;
 
-use sdr::{detect_peaks, Sample};
+use sdr::{detect_peaks, FreqSample};
 
 use crate::scan::{ScanChannels, ScanParams, ScanResults};
 
@@ -28,7 +28,7 @@ async fn identify_peaks_in_range(mut channels: ScanChannels, params: ScanParams)
 
             loop {
                 let current = channels.spectrum_rx.recv().await.unwrap();
-                let zipped: Vec<(Sample, Sample)> =
+                let zipped: Vec<(FreqSample, FreqSample)> =
                     average_spectrum.into_iter().zip(current).collect();
                 average_spectrum = zipped
                     .into_iter()
