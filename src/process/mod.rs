@@ -1,3 +1,3 @@
 mod process;
 
-pub use process::do_it;
+pub use process::*;

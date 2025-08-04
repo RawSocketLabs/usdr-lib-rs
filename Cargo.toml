@@ -14,6 +14,7 @@ rustradio = "0.14.2"
 sdr = {path = "../libsdr"}
 smoothed_z_score = "0.1.3"
 tokio = { version = "1.46.1", features = ["full"] }
+rust-dsdcc = {path = "../rust-dsdcc"}
 
 [profile.release]
 opt_level = 3

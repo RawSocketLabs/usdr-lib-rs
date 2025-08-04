@@ -5,6 +5,7 @@ mod report;
 mod sample;
 mod scan;
 mod tui;
+mod process;
 
 // THIRD PARTY CRATES
 use clap::Parser;

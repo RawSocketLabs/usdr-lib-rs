@@ -1,63 +1,59 @@
-use futuresdr::blocks::ChannelSink;
-use futuresdr::blocks::ChannelSource;
-use futuresdr::blocks::VectorSink;
-use futuresdr::futures::channel::mpsc;
-use futuresdr::runtime::Flowgraph;
-use futuresdr::blocks::XlatingFirBuilder;
-use futuresdr::blocks::VectorSource;
-use futuresdr::blocks::Head;
-use futuresdr::blocks::FileSink;
-use futuresdr::macros::connect;
-use futuresdr::runtime::Runtime;
-use futuresdr::runtime::Error;
-use futuresdr::runtime::TypedBlock;
-use sdr::device::file::WavFile;
-use sdr::SdrControl;
-use sdr::{IQSample, IQBlock};
+use rustfft::num_complex::Complex32;
+use rustradio;
 use rustradio::fir::low_pass_complex;
 use rustradio::window::WindowType;
-use rustradio;
-use rustfft::num_traits::AsPrimitive;
-use rustradio::{blocks::QuadratureDemod, graph::{Graph, GraphRunner}, mtgraph::MTGraph};
-use std::{fs, io};
-
-use rustfft::num_complex::Complex32;
+use rustradio::{blocks::QuadratureDemod, graph::GraphRunner, mtgraph::MTGraph};
+use sdr::{IQBlock, SdrError};
 use std::f32::consts::PI;
 
-
-struct DmrProcessor {
-  pub source_tx: mpsc::Sender<Box<[IQSample]>>,
-  pub sink_rx: mpsc::Receiver<Box<[IQSample]>>,
-  source: TypedBlock<ChannelSource<IQSample>>,
-  sink: TypedBlock<ChannelSink<IQSample>>,
+/// Struct for handling DMR processing
+pub struct DmrProcessor {
+    graph: MTGraph,
+    snk_hook: rustradio::vector_sink::Hook<f32>,
 }
 
 impl DmrProcessor {
-  pub fn new() -> Self {
-    let (mut src_tx, src_rx) = mpsc::channel::<Box<[IQSample]>>(4096);
-    let (mut sink_tx, sink_rx) = mpsc::channel::<Box<[IQSample]>>(4096);
-    DmrProcessor {
-      source_tx: src_tx,
-      sink_rx: sink_rx,
-      source: ChannelSource::new(src_rx),
-      sink: ChannelSink::new(sink_tx),
-    } 
-  }
+    /// Creates a new DmrProcessor with the given IQ data.  This will construct a rustradio flowgraph for transforming IQ data into a format suitable for DMR processing.
+    ///
+    /// It is expected that the signal of interest is already centered within the input IQBlock.
+    pub fn new(data: IQBlock) -> Self {
+        let mut g = MTGraph::new();
+        let (src, prev) = rustradio::blocks::VectorSource::new(data);
 
-  pub fn run(self) -> Result<(), Error> {
-        let mut fg = Flowgraph::new();
+        let taps = low_pass_complex(2000000.0, 12500.0, 2000.0, &WindowType::Hamming);
 
-        let src = self.source;
-				let snk = self.sink;
+        let (lowpass, prev) = rustradio::fir::FirFilter::builder(&taps)
+            .deci(16)
+            .build(prev);
+        let (fm_demod, prev) = QuadratureDemod::new(prev, 3.5);
+        let (resample, prev) =
+            rustradio::blocks::RationalResampler::new(prev, 48000, 125000).unwrap();
+        let (mul_const, prev) = rustradio::blocks::MultiplyConst::new(prev, 32767.0);
+        let snk = rustradio::blocks::VectorSink::new(prev, 8695740);
+        let snk_hook = snk.hook();
+        g.add(Box::new(src));
+        g.add(Box::new(lowpass));
+        g.add(Box::new(fm_demod));
+        g.add(Box::new(resample));
+        g.add(Box::new(mul_const));
+        g.add(Box::new(snk));
+        DmrProcessor { graph: g, snk_hook }
+    }
 
-        // let taps = low_pass(2000000.0, 12500.0, 2000.0, &WindowType::Hamming);
-        // let filter = XlatingFirBuilder::with_taps(taps, 16, -722832.0, 2000000.0);
+    /// Runs the DMR processing graph.
+    pub fn run(&mut self) -> Result<(), rustradio::Error> {
+        self.graph.run()
+    }
 
-        // connect!(fg, src > filter > snk);
-
-        // Runtime::new().run(fg)?;
-    Ok(())
-  }
+    /// Retrieves the processed samples from the sink hook.
+    pub fn get_processed_samples(&mut self) -> Vec<i16> {
+        self.snk_hook
+            .data()
+            .samples()
+            .iter()
+            .map(|f| *f as i16)
+            .collect()
+    }
 }
 
 fn freq_shift_num_complex(samples: &mut [Complex32], fs: f32, f_off: f32) {
@@ -80,68 +76,31 @@ fn freq_shift_num_complex(samples: &mut [Complex32], fs: f32, f_off: f32) {
     }
 }
 
-pub fn do_it() {
-        let mut g = MTGraph::new();
-        // let (src, prev) = rustradio::blocks::VectorSource::new(data);
-        let (src, prev) = rustradio::blocks::FileSource::new("shifted.wav").unwrap();
-
-        let taps = low_pass_complex(2000000.0, 12500.0, 2000.0, &WindowType::Hamming);
-
-        let (lowpass, prev) = rustradio::fir::FirFilter::builder(&taps).deci(16).build(prev);
-        let (fm_demod, prev) = QuadratureDemod::new(prev, 4.14466);
-        let (resample, prev) = rustradio::blocks::RationalResampler::new(prev, 48000, 125000).unwrap();
-        let (mul_const, prev) = rustradio::blocks::MultiplyConst::new(prev, 32767.0);
-        let snk = rustradio::blocks::VectorSink::new(prev, 8695740);
-        let hooker = snk.hook();
-        g.add(Box::new(src));
-        g.add(Box::new(lowpass));
-        g.add(Box::new(fm_demod));
-        g.add(Box::new(resample));
-        g.add(Box::new(mul_const));
-        g.add(Box::new(snk));
-        g.run().unwrap();
-
-        let samples: Vec<u8> = hooker.data().samples().iter().map(|f| *f as i16).flat_map(|i| i.to_le_bytes()).collect();
-
-        fs::write("winner.wav", &samples).unwrap();
-}
-
 #[cfg(test)]
 mod unit {
+    use std::{fs, io::Write};
+
+    use sdr::{SdrControl, device::file::WavFile};
+
     use super::*;
 
+    use rust_dsdcc::*;
+
     #[test]
-    fn test_process() -> Result<(), Error> {
-        // let mut wavfile = WavFile::new("iq.wav");
- 
-        // let mut data = wavfile.read_raw_iq(362332376).unwrap();
-        // println!("Read data");
-        // freq_shift_num_complex(&mut data, 2000000.0, -722832.0);
+    fn test_process() {
+        let mut wavfile = WavFile::new("iq.wav");
 
-        let mut g = MTGraph::new();
-        // let (src, prev) = rustradio::blocks::VectorSource::new(data);
-        let (src, prev) = rustradio::blocks::FileSource::new("shifted.wav").unwrap();
+        let mut data = wavfile.read_raw_iq(wavfile.reader.len() as usize).unwrap();
+        freq_shift_num_complex(data.as_mut_slice(), 2000000.0, -722832.0);
+        let mut processor = DmrProcessor::new(data);
+        processor.run().unwrap();
 
-        let taps = low_pass_complex(2000000.0, 12500.0, 2000.0, &WindowType::Hamming);
+        let dsddecoder = DSDDecoder::new().unwrap();
 
-        let (lowpass, prev) = rustradio::fir::FirFilter::builder(&taps).deci(16).build(prev);
-        let (fm_demod, prev) = QuadratureDemod::new(prev, 4.14466);
-        let (resample, prev) = rustradio::blocks::RationalResampler::new(prev, 48000, 125000).unwrap();
-        let (mul_const, prev) = rustradio::blocks::MultiplyConst::new(prev, 32767.0);
-        let snk = rustradio::blocks::VectorSink::new(prev, 8695740);
-        let hooker = snk.hook();
-        g.add(Box::new(src));
-        g.add(Box::new(lowpass));
-        g.add(Box::new(fm_demod));
-        g.add(Box::new(resample));
-        g.add(Box::new(mul_const));
-        g.add(Box::new(snk));
-        g.run().unwrap();
-
-        let samples: Vec<u8> = hooker.data().samples().iter().map(|f| *f as i16).flat_map(|i| i.to_le_bytes()).collect();
-
-        fs::write("winner.wav", &samples).unwrap();
-
-				Ok(())
+        dsddecoder.set_quiet();
+        
+        for sample in processor.get_processed_samples() {
+            dsddecoder.run(sample);
+        }
     }
 }
