@@ -78,13 +78,11 @@ fn freq_shift_num_complex(samples: &mut [Complex32], fs: f32, f_off: f32) {
 
 #[cfg(test)]
 mod unit {
-    use std::{fs, io::Write};
-
     use sdr::{SdrControl, device::file::WavFile};
 
     use super::*;
 
-    use rust_dsdcc::*;
+    use rust_dsdcc::{ffi::DSDDecodeMode, *};
 
     #[test]
     fn test_process() {
@@ -95,12 +93,36 @@ mod unit {
         let mut processor = DmrProcessor::new(data);
         processor.run().unwrap();
 
-        let dsddecoder = DSDDecoder::new().unwrap();
+        let dsddecoder = DSDDecoder::new();
 
-        dsddecoder.set_quiet();
-        
+        // dsddecoder.set_quiet();
+        dsddecoder.set_decode_mode(DSDDecodeMode::DSDDecodeNXDN48, false);
+        dsddecoder.set_decode_mode(DSDDecodeMode::DSDDecodeNXDN96, false);
+        dsddecoder.set_decode_mode(DSDDecodeMode::DSDDecodeDMR, true);
+
+        let mut last0_text = dsddecoder.get_slot_0_text();
+        let mut last1_text = dsddecoder.get_slot_1_text();
+        let mut i = 0;
         for sample in processor.get_processed_samples() {
             dsddecoder.run(sample);
+            let text0 = dsddecoder.get_slot_0_text();
+            let text1 = dsddecoder.get_slot_1_text();
+            if text0 != last0_text || text1 != last1_text {
+                println!(
+                    "{i:>10} Text: {} | {} | {} | {} | {} | {}",
+                    text0,
+                    text1,
+                    dsddecoder.get_sync_type(),
+                    dsddecoder.get_frame_type_text(),
+                    dsddecoder.get_frame_subtype_text(),
+                    dsddecoder.get_station_type(),
+                );
+                last0_text = text0;
+                last1_text = text1;
+            }
+            i += 1;
         }
+
+        println!("Processed {} samples", i);
     }
 }
