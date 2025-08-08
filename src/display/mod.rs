@@ -10,7 +10,7 @@ pub async fn display(tui: bool, args: DisplayArgs) {
         let terminal = ratatui::init();
 
         let app = App::new(
-            args.channels.spectrum_rx,
+            args.channels.freq_block_rx,
             args.channels.freq_rx,
             args.channels.scan_rx,
             args.params.rate,
@@ -19,6 +19,8 @@ pub async fn display(tui: bool, args: DisplayArgs) {
         let _ = app.run(terminal);
         ratatui::restore();
     } else {
-        report(args.channels.scan_rx).await;
+        
+
+        // report().await;
     }
 }

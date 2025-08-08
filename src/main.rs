@@ -1,11 +1,11 @@
 mod cli;
 mod display;
 mod init;
+mod process;
 mod report;
 mod sample;
 mod scan;
 mod tui;
-mod process;
 
 // THIRD PARTY CRATES
 use clap::Parser;
@@ -19,7 +19,7 @@ async fn main() {
     let args = Cli::parse();
 
     // Initialize channels and parameters for sampling and scanning
-    let (sample, scan, display) = init(&args);
+    let (sample, scan, process, display) = init(&args);
 
     // spawn a dedicated thread for sampling from the sdr
     sample::sample(
@@ -32,6 +32,9 @@ async fn main() {
 
     // Spawn a task for scanning the spectrum for signals
     scan::scan(scan.channels, scan.params);
+
+    // Process identified signals
+    process::process_peaks(process.channels, process.params);
 
     // report the scan results
     display::display(args.tui, display).await;

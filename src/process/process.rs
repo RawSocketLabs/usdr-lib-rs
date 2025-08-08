@@ -1,62 +1,19 @@
 use rustfft::num_complex::Complex32;
-use rustradio;
-use rustradio::fir::low_pass_complex;
-use rustradio::window::WindowType;
-use rustradio::{blocks::QuadratureDemod, graph::GraphRunner, mtgraph::MTGraph};
-use sdr::{IQBlock, SdrError};
+use sdr::IQBlock;
 use std::f32::consts::PI;
 
-/// Struct for handling DMR processing
-pub struct DmrProcessor {
-    graph: MTGraph,
-    snk_hook: rustradio::vector_sink::Hook<f32>,
-}
-
-impl DmrProcessor {
-    /// Creates a new DmrProcessor with the given IQ data.  This will construct a rustradio flowgraph for transforming IQ data into a format suitable for DMR processing.
-    ///
-    /// It is expected that the signal of interest is already centered within the input IQBlock.
-    pub fn new(data: IQBlock) -> Self {
-        let mut g = MTGraph::new();
-        let (src, prev) = rustradio::blocks::VectorSource::new(data);
-
-        let taps = low_pass_complex(2000000.0, 12500.0, 2000.0, &WindowType::Hamming);
-
-        let (lowpass, prev) = rustradio::fir::FirFilter::builder(&taps)
-            .deci(16)
-            .build(prev);
-        let (fm_demod, prev) = QuadratureDemod::new(prev, 3.5);
-        let (resample, prev) =
-            rustradio::blocks::RationalResampler::new(prev, 48000, 125000).unwrap();
-        let (mul_const, prev) = rustradio::blocks::MultiplyConst::new(prev, 32767.0);
-        let snk = rustradio::blocks::VectorSink::new(prev, 8695740);
-        let snk_hook = snk.hook();
-        g.add(Box::new(src));
-        g.add(Box::new(lowpass));
-        g.add(Box::new(fm_demod));
-        g.add(Box::new(resample));
-        g.add(Box::new(mul_const));
-        g.add(Box::new(snk));
-        DmrProcessor { graph: g, snk_hook }
-    }
-
-    /// Runs the DMR processing graph.
-    pub fn run(&mut self) -> Result<(), rustradio::Error> {
-        self.graph.run()
-    }
-
-    /// Retrieves the processed samples from the sink hook.
-    pub fn get_processed_samples(&mut self) -> Vec<i16> {
-        self.snk_hook
-            .data()
-            .samples()
-            .iter()
-            .map(|f| *f as i16)
-            .collect()
+pub fn get_new_iq_block(iq_block_rx: &mut tokio::sync::mpsc::Receiver<IQBlock>, iq_blocks: &mut Vec<IQBlock>) -> Result<(), tokio::sync::mpsc::error::TryRecvError> {
+    let new_iq_block_result = iq_block_rx.try_recv();
+    match new_iq_block_result {
+        Ok(iq_block) => {
+            iq_blocks.push(iq_block);
+            Result::Ok(())
+        }
+        Err(e) => Err(e)
     }
 }
 
-fn freq_shift_num_complex(samples: &mut [Complex32], fs: f32, f_off: f32) {
+pub fn freq_shift_num_complex(samples: &mut [Complex32], fs: f32, f_off: f32) {
     const TWO_PI: f32 = 2.0 * PI;
     let phase_inc = -TWO_PI * f_off / fs;
     let mut phase = 0.0_f32;
@@ -79,6 +36,8 @@ fn freq_shift_num_complex(samples: &mut [Complex32], fs: f32, f_off: f32) {
 #[cfg(test)]
 mod unit {
     use sdr::{SdrControl, device::file::WavFile};
+
+    use crate::process::DmrProcessor;
 
     use super::*;
 
@@ -108,7 +67,7 @@ mod unit {
             let text0 = dsddecoder.get_slot_0_text();
             let text1 = dsddecoder.get_slot_1_text();
             if text0 != last0_text || text1 != last1_text {
-                println!(
+                eprintln!(
                     "{i:>10} Text: {} | {} | {} | {} | {} | {}",
                     text0,
                     text1,

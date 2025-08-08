@@ -10,7 +10,7 @@ pub struct DisplayArgs {
 }
 
 pub struct DisplayChannels {
-    pub spectrum_rx: watch::Receiver<FreqBlock>,
+    pub freq_block_rx: watch::Receiver<FreqBlock>,
     pub freq_rx: Receiver<u32>,
     pub scan_rx: Receiver<ScanResults>,
 }

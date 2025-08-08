@@ -2,3 +2,4 @@
 *.wav
 *.dis
 .env
+.ethersync

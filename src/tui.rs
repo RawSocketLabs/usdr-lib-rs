@@ -17,23 +17,22 @@ use tokio::sync::{mpsc, watch};
 use crate::scan::ScanResults;
 
 pub struct App {
-    current_spectrum_rx: watch::Receiver<FreqBlock>,
+    current_freq_block_rx: watch::Receiver<FreqBlock>,
     frequency_rx: mpsc::Receiver<u32>,
     sample_rate: u32,
     scan_rx: mpsc::Receiver<ScanResults>,
     x_bounds: [f64; 2],
     y_bounds: [f64; 2],
-    current_spectrum: FreqBlock,
+    current_freq_block: FreqBlock,
     should_quit: bool,
     frequency: u32,
     latest_scan_results: Option<ScanResults>,
 }
 
 impl App {
-    /// Render the spectrum chart in the given area.
-    fn render_spectrum_chart(&self, frame: &mut Frame<'_>, area: Rect) {
-        let spectrum_vec = self
-            .current_spectrum
+    fn render_fft_chart(&self, frame: &mut Frame<'_>, area: Rect) {
+        let freq_block_vec = self
+            .current_freq_block
             .iter()
             .map(|f| ((f.freq as f64 / 1e6), f.db as f64))
             .collect::<Vec<(f64, f64)>>();
@@ -42,10 +41,9 @@ impl App {
             .marker(symbols::Marker::Braille)
             .graph_type(GraphType::Line)
             .style(Style::default().fg(Color::Cyan))
-            .data(&spectrum_vec);
-        // Base spectrum dataset in cyan
+            .data(&freq_block_vec);
+
         let mut datasets = vec![dataset];
-        // If we have peaks, add them as a red bar dataset
 
         let peaks_vec = match self.latest_scan_results.as_ref() {
             Some(v) => {
@@ -57,11 +55,9 @@ impl App {
             None => {
                 Vec::new()
             }
-
         }; 
 
         if !peaks_vec.is_empty() {
-            // For each detected peak, include it if within current x_bounds
             let peaks_dataset = Dataset::default()
                 .name("Peaks")
                 .marker(Marker::Braille)
@@ -73,7 +69,7 @@ impl App {
         let chart = Chart::new(datasets)
             .block(
                 Block::default()
-                    .title("Spectrum (Press q to exit)")
+                    .title("FFT Display (Press q to exit)")
                     .borders(Borders::ALL),
             )
             .x_axis(
@@ -108,7 +104,7 @@ impl App {
     }
 
     pub fn new(
-        current_spectrum_rx: watch::Receiver<FreqBlock>,
+        current_freq_block_rx: watch::Receiver<FreqBlock>,
         frequency_rx: mpsc::Receiver<u32>,
         scan_rx: mpsc::Receiver<ScanResults>,
         sample_rate: u32,
@@ -118,14 +114,14 @@ impl App {
         let half_span_mhz = (sample_rate / 2) / 1e6 as u32;
         let center_mhz = frequency / 1e6 as u32;
         Self {
-            current_spectrum_rx,
+            current_freq_block_rx,
             frequency_rx,
             sample_rate,
             scan_rx,
             frequency,
             x_bounds: [center_mhz as f64 - half_span_mhz as f64, center_mhz as f64 + half_span_mhz as f64],
             y_bounds: [-60.0, 0.0],
-            current_spectrum: Vec::new(),
+            current_freq_block: Vec::new(),
             should_quit: false,
             latest_scan_results: None,
         }
@@ -135,19 +131,16 @@ impl App {
         let tick_rate = Duration::from_millis(30);
         let mut last_tick = Instant::now();
         while !self.should_quit {
-            // Pull any pending spectrum updates
-            self.current_spectrum = self.current_spectrum_rx.borrow().to_vec();
+            self.current_freq_block = self.current_freq_block_rx.borrow().to_vec();
 
             while let Ok(f) = self.frequency_rx.try_recv() {
                 self.frequency = f;
             }
 
-            // Update latest scan results if available
             while let Ok(results) = self.scan_rx.try_recv() {
                 self.latest_scan_results = Some(results);
             }
 
-            // Check for key events and adjust frequency if needed.
             while event::poll(Duration::from_millis(0))? {
                 if let Event::Key(key) = event::read()? {
                     self.handle_input(key);
@@ -161,7 +154,6 @@ impl App {
             thread::sleep(timeout);
             last_tick = Instant::now();
         }
-        // Restore terminal state before exiting
         terminal.clear()?;
         terminal.show_cursor()?;
         Ok(())
@@ -191,7 +183,6 @@ impl App {
     }
 
     fn draw(&mut self, frame: &mut Frame<'_>) {
-        // Update x-axis bounds based on current frequency
         let center_frequency = self.frequency as f64 / 1e6;
         let half_span_mhz = self.sample_rate as f64 / 2.0 / 1e6;
         self.x_bounds = [
@@ -199,22 +190,18 @@ impl App {
             center_frequency + half_span_mhz,
         ];
 
-        // Compute layout: top half spectrum, bottom half waterfall or prompt
         let areas = Layout::default()
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
             .split(frame.area());
-        let spectrum_area = areas[0];
+        let fft_area = areas[0];
 
-        // Draw spectrum
-        self.render_spectrum_chart(frame, spectrum_area);
+        self.render_fft_chart(frame, fft_area);
 
-        // Manually render x-axis labels aligned under the spectrum data
         {
             let x_min = self.x_bounds[0];
             let x_max = self.x_bounds[1];
-            let width = spectrum_area.width as usize;
+            let width = fft_area.width as usize;
             let mut spans = Vec::with_capacity(width);
-            // Build label spans at 10% increments (11 labels)
             for _col in 0..width {
                 spans.push(Span::raw(" "));
             }
@@ -222,9 +209,7 @@ impl App {
                 let frac = i as f64 / 10.0;
                 let value = x_min + frac * (x_max - x_min);
                 let label = format!("{:.2}", value);
-                // Compute start column for this label
                 let col = ((width.saturating_sub(label.len())) as f64 * frac).round() as usize;
-                // Place label characters into spans
                 for (j, ch) in label.chars().enumerate() {
                     if col + j < spans.len() {
                         spans[col + j] = Span::raw(ch.to_string());
@@ -232,11 +217,10 @@ impl App {
                 }
             }
             let line = Line::from(spans);
-            // Determine label_row just below the spectrum block (excluding borders)
             let label_row = Rect {
-                x: spectrum_area.x + 1,
-                y: spectrum_area.y + spectrum_area.height - 1,
-                width: spectrum_area.width - 2,
+                x: fft_area.x + 1,
+                y: fft_area.y + fft_area.height - 1,
+                width: fft_area.width - 2,
                 height: 1,
             };
             frame.render_widget(
