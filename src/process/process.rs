@@ -2,14 +2,17 @@ use rustfft::num_complex::Complex32;
 use sdr::IQBlock;
 use std::f32::consts::PI;
 
-pub fn get_new_iq_block(iq_block_rx: &mut tokio::sync::mpsc::Receiver<IQBlock>, iq_blocks: &mut Vec<IQBlock>) -> Result<(), tokio::sync::mpsc::error::TryRecvError> {
+pub fn get_new_iq_block(
+    iq_block_rx: &mut tokio::sync::mpsc::Receiver<IQBlock>,
+    iq_blocks: &mut Vec<IQBlock>,
+) -> Result<(), tokio::sync::mpsc::error::TryRecvError> {
     let new_iq_block_result = iq_block_rx.try_recv();
     match new_iq_block_result {
         Ok(iq_block) => {
             iq_blocks.push(iq_block);
             Result::Ok(())
         }
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     }
 }
 
@@ -45,7 +48,7 @@ mod unit {
 
     #[test]
     fn test_process() {
-        let mut wavfile = WavFile::new("iq.wav");
+        let mut wavfile = WavFile::new("../../resources/iq.wav");
 
         let mut data = wavfile.read_raw_iq(wavfile.reader.len() as usize).unwrap();
         freq_shift_num_complex(data.as_mut_slice(), 2000000.0, -722832.0);
