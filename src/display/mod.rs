@@ -19,7 +19,6 @@ pub async fn display(tui: bool, args: DisplayArgs) {
         let _ = app.run(terminal);
         ratatui::restore();
     } else {
-        
 
         // report().await;
     }

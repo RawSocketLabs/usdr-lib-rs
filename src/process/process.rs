@@ -48,7 +48,7 @@ mod unit {
 
     #[test]
     fn test_process() {
-        let mut wavfile = WavFile::new("../../resources/iq.wav");
+        let mut wavfile = WavFile::new("./resources/iq.wav");
 
         let mut data = wavfile.read_raw_iq(wavfile.reader.len() as usize).unwrap();
         freq_shift_num_complex(data.as_mut_slice(), 2000000.0, -722832.0);

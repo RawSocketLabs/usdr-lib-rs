@@ -1,5 +1,4 @@
 /target
-*.wav
 *.dis
 .env
 .ethersync

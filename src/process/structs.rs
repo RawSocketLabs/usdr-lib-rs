@@ -1,4 +1,7 @@
-use rustradio::{blocks::QuadratureDemod, fir::low_pass_complex, graph::GraphRunner, mtgraph::MTGraph, window::WindowType};
+use rustradio::{
+    blocks::QuadratureDemod, fir::low_pass_complex, graph::GraphRunner, mtgraph::MTGraph,
+    window::WindowType,
+};
 use sdr::{FreqSample, IQBlock};
 use tokio::sync::mpsc::Receiver;
 
@@ -11,12 +14,10 @@ pub struct ProcessArgs {
 
 pub struct ProcessChannels {
     pub iq_block_rx: Receiver<sdr::IQBlock>,
-    pub peaks_rx: Receiver<ScanResults>
+    pub peaks_rx: Receiver<ScanResults>,
 }
 
-pub struct ProcessParams {
-
-}
+pub struct ProcessParams {}
 
 pub struct ProcessedMetadata {
     pub peak: FreqSample,

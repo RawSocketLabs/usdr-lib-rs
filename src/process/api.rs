@@ -4,7 +4,8 @@ use rust_dsdcc::{DSDDecoder, ffi::DSDDecodeMode};
 use sdr::IQBlock;
 
 use crate::process::{
-    freq_shift_num_complex, get_new_iq_block, DmrProcessor, ProcessChannels, ProcessParams, ProcessedMetadata
+    DmrProcessor, ProcessChannels, ProcessParams, ProcessedMetadata, freq_shift_num_complex,
+    get_new_iq_block,
 };
 
 // scan for peaks
@@ -14,14 +15,14 @@ use crate::process::{
 pub fn process_peaks(mut process_channels: ProcessChannels, process_params: ProcessParams) {
     thread::spawn(move || {
         // TODO: Receiver process will spawn new tasks to process each peak with cloned IQ block vec
-        let mut iq_blocks = Vec::<IQBlock>::with_capacity(4000000 / 4096);
+        let mut iq_blocks = Vec::<IQBlock>::with_capacity(4_000_000 / 4096);
         loop {
             //let _ = get_new_iq_block(&mut process_channels.iq_block_rx, &mut iq_blocks);
-            while iq_blocks.len() < 4000000 / 4096 {
+            while iq_blocks.len() < 4_000_000 / 4096 {
                 let _ = get_new_iq_block(&mut process_channels.iq_block_rx, &mut iq_blocks);
             }
             let mut flat: IQBlock = iq_blocks.clone().into_iter().flatten().collect();
-            flat.truncate(4000000);
+            flat.truncate(4_000_000);
 
             let peaks_result = process_channels.peaks_rx.try_recv();
 
@@ -43,7 +44,7 @@ pub fn process_peaks(mut process_channels: ProcessChannels, process_params: Proc
                             let mut flat = flat.clone();
                             freq_shift_num_complex(
                                 flat.as_mut_slice(),
-                                2000000.0,
+                                2_000_000.0,
                                 (peak.freq as i32 - center_freq as i32) as f32,
                             );
                             let mut processor = DmrProcessor::new(flat);
@@ -51,7 +52,7 @@ pub fn process_peaks(mut process_channels: ProcessChannels, process_params: Proc
                             let metadata = ProcessedMetadata {
                                 peak,
                                 timestamp: chrono::Utc::now().timestamp_millis(),
-                                processed_samples:  processor.get_processed_samples(),
+                                processed_samples: processor.get_processed_samples(),
                             };
                             eprintln!("{:?} Peak: {:?}", metadata.timestamp, metadata.peak);
                         }

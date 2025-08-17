@@ -46,16 +46,13 @@ impl App {
         let mut datasets = vec![dataset];
 
         let peaks_vec = match self.latest_scan_results.as_ref() {
-            Some(v) => {
-                v.peaks
+            Some(v) => v
+                .peaks
                 .iter()
                 .map(|sample| ((sample.freq as f64 / 1e6), sample.db as f64))
-                .collect::<Vec<(f64, f64)>>()
-            },
-            None => {
-                Vec::new()
-            }
-        }; 
+                .collect::<Vec<(f64, f64)>>(),
+            None => Vec::new(),
+        };
 
         if !peaks_vec.is_empty() {
             let peaks_dataset = Dataset::default()
@@ -119,7 +116,10 @@ impl App {
             sample_rate,
             scan_rx,
             frequency,
-            x_bounds: [center_mhz as f64 - half_span_mhz as f64, center_mhz as f64 + half_span_mhz as f64],
+            x_bounds: [
+                center_mhz as f64 - half_span_mhz as f64,
+                center_mhz as f64 + half_span_mhz as f64,
+            ],
             y_bounds: [-60.0, 0.0],
             current_freq_block: Vec::new(),
             should_quit: false,
@@ -247,7 +247,8 @@ impl App {
                 for &sample in &scan.peaks {
                     result_lines.push(Line::from(vec![Span::raw(format!(
                         "  {:.3} MHz: {:.2} dB",
-                        sample.freq as f32 / 1e6, sample.db
+                        sample.freq as f32 / 1e6,
+                        sample.db
                     ))]));
                 }
             }
