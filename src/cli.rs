@@ -3,16 +3,12 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[clap(name = "sdrscanner", about = "Scan a frequency range for signal peaks")]
 pub struct Cli {
-    /// Start frequency in Hz
-    #[clap(long, default_value = "400000000")]
-    pub start_freq: u32,
-
-    /// End frequency in Hz
-    #[clap(long, default_value = "520000000")]
-    pub end_freq: u32,
+    /// Range of frequencies to accept
+    #[clap(long, value_parser, num_args=1.., value_delimiter=' ', default_value="400000000,520000000")]
+    pub ranges: Vec<String>,
 
     /// Delay between switching frequencies in milliseconds
-    #[clap(long, default_value = "0")]
+    #[clap(long, default_value = "50")]
     pub sleep_ms: u64,
 
     /// Sample Rate
@@ -30,10 +26,6 @@ pub struct Cli {
     /// Denote that the input IQ file is raw IQ data and not a WAV file.
     #[clap(long, action, requires = "file_source")]
     pub raw: bool,
-
-    /// Full TUI display
-    #[clap(long, action)]
-    pub tui: bool,
 
     /// Bandwidth window for detecting peaks
     #[clap(long, default_value = "12500")]

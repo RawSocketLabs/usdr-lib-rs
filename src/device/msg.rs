@@ -1,3 +1,4 @@
 pub enum DevMsg {
-    ChangeDevFreq(usize),
+    ChangeFreq(usize),
+    ClientsConnected(bool),
 }

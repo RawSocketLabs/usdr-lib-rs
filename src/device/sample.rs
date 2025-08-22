@@ -1,89 +1,76 @@
-// STD LIB
-use std::sync::Arc;
-use std::time::Duration;
-
-// THIRD PARTY CRATES
-use rustfft::{Fft, FftPlanner};
-
 // VENDOR CRATES
-use sdr::{
-    Device, IQBlock, SdrControl, apply_hann_window, compute_freq_block, compute_hann_window,
-    remove_dc_offset,
-};
+use sdr::{Device, SdrControl, remove_dc_offset};
 
 // LOCAL CRATE
-use crate::CtrlMsg;
-use crate::device::structs::SampleArgs;
 use crate::device::traits::Sample;
+use crate::device::{DevChannels, DevMsg, SampleContext};
+use crate::io::Input;
 
 impl<T: SdrControl> Sample<T> for Device<T> {
-    fn sample(&mut self, mut args: SampleArgs) {
-        let (fft, hann_window, mut center_freq) = init(self, &args);
+    fn sample(&mut self, mut channels: DevChannels, mut ctx: SampleContext) {
+        // TODO: Properly handle errors here...
+        self.set_center_frequency(ctx.freq).unwrap();
 
         loop {
-            update_frequency_on_change(self, &mut args, &mut center_freq);
-            send_current_freq_block(self, &args, &*fft, &hann_window, center_freq);
+            handle_message(self, &mut channels, &mut ctx);
+            send_freq_and_iq(self, &channels, &ctx);
         }
     }
 }
 
-fn init<T: SdrControl>(
-    args: &SampleArgs,
+fn handle_message<T: SdrControl>(
     device: &mut Device<T>,
-) -> (Arc<dyn Fft<f32>>, Vec<f32>, u32) {
-    let mut planner = FftPlanner::new();
-    let fft = planner.plan_fft_forward(args.fft_size);
-
-    // Precompute Hann window for FFT_SIZE
-    let hann_window = compute_hann_window(args.fft_size as u32);
-
-    device
-        .set_center_frequency(args.center_freq)
-        .expect("Failed to set initial center frequency");
-
-    (fft, hann_window, args.center_freq)
-}
-
-fn update_frequency_on_change<T: SdrControl>(
-    device: &mut Device<T>,
-    args: &mut SampleArgs,
-    current_freq: &mut u32,
+    channels: &mut DevChannels,
+    ctx: &mut SampleContext,
 ) {
-    if let Ok(DevMsg::ChangeDevFreq(new_freq)) = args.dev_rx.try_recv() {
-        // Change the device center frequency
-        let _ = device.set_center_frequency(new_freq);
-        *current_freq = new_freq;
-
-        // Give the SDR time to actually change over to the new center freq
-        std::thread::sleep(args.sleep_duration);
-
-        // Send the message back up that we have switched frequencies
-        args.ctrl_tx.blocking_send(CtrlMsg::DevFreqUpdated);
+    match channels.dev_rx.try_recv() {
+        Ok(DevMsg::ChangeFreq(new_freq)) => change_dev_freq(device, channels, ctx, new_freq),
+        Ok(DevMsg::ClientsConnected(connected)) => ctx.clients_connected = connected,
+        _ => {} // Log this weird error case...
     }
 }
 
-fn send_current_freq_block<T: SdrControl>(
+fn change_dev_freq<T: SdrControl>(
     device: &mut Device<T>,
-    args: &SampleArgs,
-    fft: &dyn Fft<f32>,
-    hann_window: &Vec<f32>,
-    center_freq: u32,
+    channels: &mut DevChannels,
+    ctx: &mut SampleContext,
+    new_freq: usize,
 ) {
-    if let Ok(mut iq_block) = device.read_raw_iq(params.fft_size) {
+    // Change the device center frequency
+    // TODO: Properly handle errors here...
+    ctx.freq = new_freq as u32;
+    let _ = device.set_center_frequency(ctx.freq);
+
+    // Give the SDR time to actually change over to the new center freq
+    std::thread::sleep(ctx.update_sleep_time);
+
+    // Send the message back up that we have switched frequencies
+    // TODO: Properly handle errors here...
+    let _update = channels.main_tx.blocking_send(Input::DeviceFreqUpdated);
+}
+
+fn send_freq_and_iq<T: SdrControl>(
+    device: &mut Device<T>,
+    channels: &DevChannels,
+    ctx: &SampleContext,
+) {
+    if let Ok(mut iq_block) = device.read_raw_iq(ctx.fft_size) {
         // Clone the raw iq for later use
         let iq_block_raw = iq_block.clone();
 
-        // Remove DC offset to avoid dip at center frequency
+        // Remove DC offset to avoid dip at the center frequency
         remove_dc_offset(&mut iq_block);
-        apply_hann_window(&mut iq_block, hann_window);
+        ctx.apply_window(&mut iq_block);
 
-        if let Ok(freq_block) = compute_freq_block(params.rate, fft, center_freq, iq_block) {
-            if clients_connected {
-                let _ = args.out_tx.send(freq_block.clone());
+        if let Ok(freq_block) = ctx.convert_to_freq_block(iq_block) {
+            if ctx.clients_connected {
+                // TODO: Properly handle errors here...
+                let _ = channels.realtime_tx.send(freq_block.clone());
             }
+            // TODO: Properly handle errors here...
             // NOTE: We should come back to this and determine if we need a tick interval and
-            // whether or not this thread needs to be async in nature...
-            let _ = args.process_tx(iq_block_raw, freq_block).try_send();
+            // whether this thread needs to be async in nature...
+            let _ = channels.process_tx.try_send((iq_block_raw, freq_block));
         }
     }
 }

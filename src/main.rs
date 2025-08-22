@@ -1,12 +1,8 @@
 mod cli;
 mod context;
-mod ctrl;
 mod device;
-mod display;
+mod io;
 mod process;
-mod report;
-mod scan;
-mod tui;
 
 // THIRD PARTY CRATES
 use clap::Parser;
@@ -16,19 +12,10 @@ use tokio::sync::{mpsc::channel, watch};
 use sdr::FreqBlock;
 
 // LOCAL CRATES
-use crate::{cli::Cli, context::Context, device::DevMsg, init::init};
-
-// TODO: MOVE THIS
-pub enum CtrlMsg {
-    DevFreqUpdated,
-    ConnectToStream(usize),
-}
-
-pub enum OutMsg {
-    Metadata,
-    Peaks(Vec<Peak>),
-    FreqBlock(FreqBlock),
-}
+use crate::context::ScanMode;
+use crate::io::{Input, Output};
+use crate::process::{ProcessContext, ProcessType, process_peaks};
+use crate::{cli::Cli, context::Context, device::DevMsg};
 
 #[tokio::main]
 async fn main() {
@@ -39,34 +26,35 @@ async fn main() {
     // Messages for the device to action.
     let (dev_tx, dev_rx) = channel::<DevMsg>(8);
 
-    // Messages from the device to further process.
+    // Messages from the device for processing.
     let (process_tx, mut process_rx) = channel(512);
 
     // Messages from external applications that need to be actioned in the main loop.
-    let (ctrl_tx, mut ctrl_rx) = channel::<CtrlMsg>(128);
+    let (in_tx, mut in_rx) = channel::<Input>(512);
 
-    // Structred messages from the program destin to external applications.
-    let (out_tx, out_rx) = channel::<OutMsg>(512);
+    // Structured messages from the program destin to external applications.
+    let (out_tx, out_rx) = channel::<Output>(512);
 
     // Realtime messages from internal threads to external applications.
-    let (realtime_tx, realtime_rx) = watch::channel(OutMsg::FreqBlock(FreqBlock::new()));
+    let (realtime_tx, realtime_rx) = watch::channel(FreqBlock::new());
     ////
 
-    // Initialize variables into the top level context object
+    // Initialize variables into the top-level context object.
     let mut ctx = Context::new(&args, dev_tx.clone()).unwrap();
 
     //// START DEDICATED THREADS
-    // Dedicated OS thread to handle SDR device
+    // Dedicated OS thread to handle the SDR device.
     device::start(
-        args.file,
-        args.raw,
-        args.rate,
+        &args,
         ctx.scan_manager.current(),
-        args.fft_size,
+        dev_rx,
+        in_tx.clone(),
+        process_tx,
+        realtime_tx,
     );
 
     // Dedicated OS thread to handle external applications (in/out)
-    //ctrl::start();
+    io::start(in_tx, out_rx, realtime_rx);
     ////
 
     // Main Loop
@@ -74,10 +62,10 @@ async fn main() {
         tokio::select! {
             biased;
 
-            // Handle External Ctrl Messages.
-            Some(ctrl_msg) = ctrl_rx.recv() => {
-                match ctrl_msg {
-                    CtrlMsg::DevFreqUpdated => {
+            // Handle Input Messages.
+            Some(input) = in_rx.recv() => {
+                match input {
+                    Input::DeviceFreqUpdated => {
                     while let Ok(_) = process_rx.try_recv() {}
                     ctx.process_blocks = true
                 },
@@ -87,7 +75,7 @@ async fn main() {
 
             // Handle IQ & Freq blocks being sent from the SDR.
             Some((iq_block, freq_block)) = process_rx.recv(), if ctx.process_blocks => {
-                // Add the IQ block and update the average Freq blok for the current context.
+                // Add the IQ block and update the average Freq block for the current context.
                 ctx.collected_iq.push(iq_block);
                 ctx.update_average(freq_block);
 
@@ -96,10 +84,10 @@ async fn main() {
                 if ctx.peaks.is_empty() && ctx.collected_iq.len() >= ctx.blocks_required_for_average {
                     ctx.detect_peaks();
 
-                    // If no peaks were detected cleanup the current context and move on
+                    // If no peaks were detected, then we clean up the current context and move on
                     match ctx.peaks.is_empty() {
                         true => {ctx.next(); continue;},
-                        false => ctrl_tx.blocking_send(CtrlMsg::Peaks(ctx.peaks.clone())).unwrap(),
+                        false => out_tx.send(Output::Peaks(vec![])).await.unwrap(),
                     }
                 }
 
@@ -108,8 +96,8 @@ async fn main() {
                     continue;
                 }
 
-                // If peaks have been detected and enough IQ blocks have been stored for metadata
-                // processing run this section of code
+                // If peaks have been detected and enough IQ blocks have been stored for the metadata
+                //  extraction, this section of code will be run.
                 if ctx.collected_iq.len() > ctx.blocks_required_for_metadata {
                     // Take the peaks and IQ blocks from the current context
                     let peaks = std::mem::take(&mut ctx.peaks);
@@ -118,9 +106,10 @@ async fn main() {
                     // Spawn a green thread to run as a background task when the scheduler has
                     // time. It handles reporting sending its output to the appropriate channel
                     // directly.
-                    tokio::task::spawn(async {});
+                    let process_ctx = ProcessContext::new(0.0,0.0,ProcessType::PreProcess, out_tx.clone());
+                    tokio::task::spawn(async move {process_peaks(process_ctx, iq_blocks, &peaks);});
 
-                    // Cleanup the current context and move on
+                    // Clean up the current context and move on
                     ctx.next();
                 }
             },

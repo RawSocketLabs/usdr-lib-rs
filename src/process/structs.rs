@@ -3,35 +3,20 @@ use rustradio::{
     window::WindowType,
 };
 use sdr::{FreqSample, IQBlock};
-use tokio::sync::mpsc::Receiver;
 
-use crate::scan::ScanResults;
-
-pub struct ProcessArgs {
-    pub channels: ProcessChannels,
-    pub params: ProcessParams,
-}
-
-pub struct ProcessChannels {
-    pub iq_block_rx: Receiver<sdr::IQBlock>,
-    pub peaks_rx: Receiver<ScanResults>,
-}
-
-pub struct ProcessParams {}
-
-pub struct ProcessedMetadata {
-    pub peak: FreqSample,
+pub struct SignalMetadata {
     pub timestamp: i64,
+    pub peak: FreqSample,
     pub processed_samples: Vec<i16>,
 }
 
 /// Struct for handling DMR processing
-pub struct DmrProcessor {
+pub struct SignalPreProcessor {
     graph: MTGraph,
     snk_hook: rustradio::vector_sink::Hook<f32>,
 }
 
-impl DmrProcessor {
+impl SignalPreProcessor {
     /// Creates a new DmrProcessor with the given IQ data.  This will construct a rustradio flowgraph for transforming IQ data into a format suitable for DMR processing.
     ///
     /// It is expected that the signal of interest is already centered within the input IQBlock.
@@ -56,7 +41,7 @@ impl DmrProcessor {
         g.add(Box::new(resample));
         g.add(Box::new(mul_const));
         g.add(Box::new(snk));
-        DmrProcessor { graph: g, snk_hook }
+        SignalPreProcessor { graph: g, snk_hook }
     }
 
     /// Runs the DMR processing graph.
