@@ -11,13 +11,13 @@ pub enum External {
     Peaks(Vec<FreqSample>),
 }
 
-#[derive(Encode, Decode, Debug)]
+#[derive(Clone, Encode, Decode, Debug)]
 pub enum ConnectionType {
     Display,
     Metadata,
 }
 
-#[derive(Encode, Decode)]
+#[derive(Clone, Encode, Decode, Debug)]
 pub struct DisplayInfo {
     pub center_freq: usize,
     pub rate: usize,
