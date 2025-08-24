@@ -65,6 +65,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3995eaeebcdf32f91f980d360f78732ddc061097ab4e39991ae7a6ace9194677"
 
 [[package]]
+name = "comms"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "sdr",
+]
+
+[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -186,14 +194,6 @@ dependencies = [
  "rustfft",
  "smoothed_z_score",
  "thiserror",
-]
-
-[[package]]
-name = "sdrscanner-comms"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "sdr",
 ]
 
 [[package]]

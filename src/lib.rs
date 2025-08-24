@@ -11,7 +11,7 @@ pub enum External {
     Peaks(Vec<FreqSample>),
 }
 
-#[derive(Encode, Decode)]
+#[derive(Encode, Decode, Debug)]
 pub enum ConnectionType {
     Display,
     Metadata,
