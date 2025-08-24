@@ -1,34 +1,55 @@
 use std::os::unix::net::{UnixListener, UnixStream};
-use std::thread;
+use bincode::config::{BigEndian, Configuration, Fixint};
 use sdr::FreqBlock;
-use tokio::sync::{mpsc::{Receiver, Sender}, watch::Receiver as WatchReceiver};
-use crate::io::{External, Input, Output};
+use comms::{ConnectionType, External};
+use tokio::sync::{mpsc::Sender, watch::Receiver as WatchReceiver, broadcast::Sender as BroadcastSender, broadcast::Receiver as BroadcastReceiver};
+use crate::io::{Input, Output};
 
-pub fn start(in_tx: Sender<Input>, out_rx: Receiver<Output>, realtime_rx: WatchReceiver<FreqBlock>) {
-    thread::spawn(move || {
-        let mut connected = 0;
-        let mut listener = UnixListener::bind("/tmp/sdrscanner").unwrap();
+pub async fn start(in_tx: Sender<Input>, out_tx: BroadcastSender<Output>, realtime_rx: WatchReceiver<FreqBlock>) {
+    tokio::task::spawn(async move {
+        let listener = UnixListener::bind("/tmp/sdrscanner").unwrap();
 
-
-        match listener.accept() {
-            Ok((stream, addr)) => handle_client(stream, in_tx, out_rx, realtime_rx),
-            _ => {}
+        for stream in listener.incoming() {
+            if let Ok(stream) = stream {
+                let (in_tx, out_rx, realtime_rx) = (in_tx.clone(), out_tx.subscribe(), realtime_rx.clone());
+                let _ = tokio::task::spawn(async move { handle_client(stream, in_tx, out_rx, realtime_rx).await}).await;
+            }
         }
     });
 }
 
-fn handle_client(mut stream: UnixStream, in_tx: Sender<Input>, out_rx: Receiver<Output>, mut realtime_rx: WatchReceiver<FreqBlock>) {
+async fn handle_client(mut stream: UnixStream, in_tx: Sender<Input>, mut out_rx: BroadcastReceiver<Output>, mut realtime_rx: WatchReceiver<FreqBlock>) {
     let mut config = bincode::config::standard().with_big_endian().with_fixed_int_encoding();
 
-    if let External::Connection(ctype) = bincode::decode_from_std_read(&mut stream, config).unwrap() {
-        println!("GOT CONNECTION OF TYPE: {:?}", ctype);
-    }
+    if let External::Connection(conn_type) = bincode::decode_from_std_read(&mut stream, config).unwrap() {
+        // TODO: Handle errors
+        in_tx.send(Input::ClientAtLeastOneConnected).await.unwrap();
 
+        match conn_type {
+            ConnectionType::Display => {handle_display_client(stream, config, in_tx, out_rx, realtime_rx).await;},
+            ConnectionType::Metadata => {}
+        }
+    }
+}
+
+async fn handle_display_client(mut stream: UnixStream, config: Configuration<BigEndian, Fixint>, in_tx: Sender<Input>, mut out_rx: BroadcastReceiver<Output>, mut realtime_rx: WatchReceiver<FreqBlock>) {
     loop {
-        let freq_block = realtime_rx.borrow_and_update().clone();
-        bincode::encode_into_std_write(freq_block, &mut stream, config).unwrap();
-        while !realtime_rx.has_changed().unwrap() {}
-    }
+        tokio::select! {
+            biased;
 
+            msg = out_rx.recv() => {
+                match msg {
+                    Ok(Output::Display(display_info)) => {bincode::encode_into_std_write(External::Display(display_info), &mut stream, config).unwrap();},
+                    Ok(Output::Peaks(peaks)) => {bincode::encode_into_std_write(External::Peaks(peaks), &mut stream, config).unwrap();},
+                    _ => {},
+                }
+            },
+            _ = realtime_rx.changed() => {
+                let freq_block = realtime_rx.borrow_and_update().clone();
+                bincode::encode_into_std_write(External::Realtime(freq_block), &mut stream, config).unwrap();
+            },
+
+        }
+    }
 
 }

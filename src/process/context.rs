@@ -1,4 +1,4 @@
-use tokio::sync::mpsc::Sender;
+use tokio::sync::broadcast::Sender;
 use crate::io::Output;
 
 pub struct ProcessContext {

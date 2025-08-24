@@ -18,6 +18,36 @@ pub(crate) const DEFAULT_BLOCKS_REQUIRED_FOR_AVERAGE: usize = 50;
 pub(crate) const DEFAULT_BLOCKS_REQUIRED_FOR_METADATA: usize = 1_000;
 pub(crate) const DEFAULT_SCAN_CYCLES_REQUIRED_FOR_METADATA: usize = 1;
 
+
+pub struct StoredInfo {
+    observations: HashMap<FreqRange, Vec<Observation>>
+}
+
+pub struct CurrentState {
+    peaks: Vec<FreqSample>,
+    collected_iq: Vec<IQBlock>,
+    average_freq_block: FreqBlock,
+}
+
+
+pub struct ProcessParameters {
+    freq_ranges_to_ignore: Vec<FreqRange>,
+    scan_cycles_required: usize,
+}
+
+pub struct ContextChannels {
+
+}
+
+//pub struct Testing {
+//    pub block: BlockParameters,
+//    pub channels: ContextChannels,
+//    pub current: CurrentState,
+//    pub storage: StoredInfo,
+//    pub process: ProcessParameters,
+//    pub scan: ScanContext,
+//}
+
 /// Context object to hold state during runtime
 pub(crate) struct Context {
     /// The current scan mode.

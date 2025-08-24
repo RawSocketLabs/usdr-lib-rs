@@ -5,11 +5,11 @@ use std::time::Duration;
 use sdr::FreqRange;
 use tokio::sync::mpsc::Sender;
 
-#[derive(PartialEq, Eq)]
-pub enum ScanMode {
-    SweepThenProcess,
-    SweepAndProcess,
+pub struct ScanContext {
+    mode: ScanMode,
+    manager: ScanManager,
 }
+
 
 pub(crate) struct ScanManager {
     idx: usize,
@@ -62,9 +62,15 @@ impl ScanManager {
             self.cycles_completed += 1;
         }
 
-        // Send message to the device
+        // Send a message to the device
         self.dev_tx
             .try_send(DevMsg::ChangeFreq(self.current))
             .unwrap();
     }
+}
+
+#[derive(PartialEq, Eq)]
+pub enum ScanMode {
+    SweepThenProcess,
+    SweepAndProcess,
 }

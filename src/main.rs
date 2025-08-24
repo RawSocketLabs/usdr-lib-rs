@@ -6,7 +6,7 @@ mod process;
 
 // THIRD PARTY CRATES
 use clap::Parser;
-use tokio::sync::{mpsc::channel, watch};
+use tokio::sync::{mpsc::channel, watch, broadcast};
 
 // VENDOR CRATES
 use sdr::FreqBlock;
@@ -33,7 +33,7 @@ async fn main() {
     let (in_tx, mut in_rx) = channel::<Input>(512);
 
     // Structured messages from the program destin to external applications.
-    let (out_tx, out_rx) = channel::<Output>(512);
+    let (out_tx, out_rx) = broadcast::channel::<Output>(512);
 
     // Realtime messages from internal threads to external applications.
     let (realtime_tx, realtime_rx) = watch::channel(FreqBlock::new());
@@ -54,7 +54,7 @@ async fn main() {
     );
 
     // Dedicated OS thread to handle external applications (in/out)
-    io::start(in_tx, out_rx, realtime_rx);
+    io::start(in_tx, out_tx.clone(), realtime_rx).await;
     ////
 
     // Main Loop
@@ -69,6 +69,9 @@ async fn main() {
                     while let Ok(_) = process_rx.try_recv() {}
                     ctx.process_blocks = true
                 },
+                    Input::ClientAtLeastOneConnected => {
+                        dev_tx.clone().send(DevMsg::ClientsConnected(true)).await.unwrap();
+                    }
                     _ => unimplemented!(),
                 }
             },
@@ -87,7 +90,7 @@ async fn main() {
                     // If no peaks were detected, then we clean up the current context and move on
                     match ctx.peaks.is_empty() {
                         true => {ctx.next(); continue;},
-                        false => out_tx.send(Output::Peaks(vec![])).await.unwrap(),
+                        false => {out_tx.send(Output::Peaks(ctx.peaks.clone())).unwrap();},
                     }
                 }
 
