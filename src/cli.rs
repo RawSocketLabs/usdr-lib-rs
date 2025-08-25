@@ -30,4 +30,25 @@ pub struct Cli {
     /// Bandwidth window for detecting peaks
     #[clap(long, default_value = "12500")]
     pub bandwidth: u32,
+
+    /// Scan Mode
+    #[clap(long, default_value = "SweepThenProcess")]
+    pub scan_mode: String,
+
+    /// Number of blocks required to determine average db
+    #[clap(long)]
+    pub blocks_for_average: Option<usize>,
+
+    /// Number of blocks required for processing metadata
+    #[clap(long)]
+    pub blocks_for_metadata: Option<usize>,
+
+    /// Number of blocks required for processing metadata
+    #[clap(long)]
+    pub scans_before_processing: Option<usize>,
+
+    /// Number of blocks required for processing metadata
+    #[clap(long)]
+    pub freq_ranges_to_ignore: Option<Vec<String>>,
+
 }

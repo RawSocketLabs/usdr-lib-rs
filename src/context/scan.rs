@@ -1,33 +1,55 @@
 use crate::cli::Cli;
 use crate::device::DevMsg;
 use std::str::FromStr;
+use std::thread::sleep;
 use std::time::Duration;
-use comms::DisplayInfo;
 use sdr::FreqRange;
 use tokio::sync::mpsc::Sender;
-use tokio::sync::broadcast::Sender as BroadcastSender;
-use crate::io::Output;
 
 pub struct ScanContext {
-    mode: ScanMode,
+    pub mode: ScanMode,
     manager: ScanManager,
+}
+
+impl ScanContext {
+    pub fn new(mode: ScanMode, args: &Cli, dev_tx: Sender<DevMsg>) -> Result<Self, ()> {
+        Ok(Self {
+            mode,
+            manager: ScanManager::new(args, dev_tx)?
+        })
+    }
+
+    pub fn current(&self) -> usize {
+        self.manager.current()
+    }
+
+    pub fn rate(&self) -> u32 {
+        self.manager.rate
+    }
+
+    pub fn next(&mut self) {
+        self.manager.next()
+    }
+
+    pub fn cycles(&self) -> usize {
+        self.manager.cycles_completed
+    }
 }
 
 
 pub(crate) struct ScanManager {
     idx: usize,
-    rate: u32,
+    pub(crate) rate: u32,
     current: usize,
     step_size: usize,
     pub(crate) cycles_completed: usize,
     sleep_duration: Duration,
     ranges: Vec<FreqRange>,
     dev_tx: Sender<DevMsg>,
-    out_tx: BroadcastSender<Output>,
 }
 
 impl ScanManager {
-    pub(crate) fn new(args: &Cli, dev_tx: Sender<DevMsg>, out_tx: BroadcastSender<Output>) -> Result<Self, ()> {
+    pub(crate) fn new(args: &Cli, dev_tx: Sender<DevMsg>) -> Result<Self, ()> {
         let ranges: Vec<FreqRange> = args
             .ranges
             .iter()
@@ -44,7 +66,6 @@ impl ScanManager {
                 current: ranges[0].start,
                 ranges,
                 dev_tx,
-                out_tx,
             }),
         }
     }
@@ -64,9 +85,9 @@ impl ScanManager {
                 self.cycles_completed += 1;
             }
         }
-        
-        self.out_tx.send(Output::Display(DisplayInfo { center_freq: self.current, rate: self.rate as usize})).unwrap();
 
+        sleep(self.sleep_duration);
+        
         // Send a message to the device
         // TODO: Handle errors properly
         self.dev_tx
@@ -76,8 +97,18 @@ impl ScanManager {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
 pub enum ScanMode {
     SweepThenProcess,
     SweepAndProcess,
+}
+impl FromStr for ScanMode {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "SweepThenProcess" => Ok(ScanMode::SweepThenProcess),
+            "SweepAndProcess" => Ok(ScanMode::SweepAndProcess),
+            _ => Err(()),
+        }
+    }
 }

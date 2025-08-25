@@ -6,6 +6,7 @@ mod process;
 
 // THIRD PARTY CRATES
 use clap::Parser;
+use comms::DisplayInfo;
 use tokio::sync::{broadcast, mpsc::channel, watch};
 
 // VENDOR CRATES
@@ -33,20 +34,20 @@ async fn main() {
     let (in_tx, mut in_rx) = channel::<Input>(512);
 
     // Structured messages from the program destin to external applications.
-    let (out_tx, _) = broadcast::channel::<Output>(512);
+    let (out_tx, out_rx) = broadcast::channel::<Output>(512);
 
     // Realtime messages from internal threads to external applications.
     let (realtime_tx, realtime_rx) = watch::channel(FreqBlock::new());
     ////
 
     // Initialize variables into the top-level context object.
-    let mut ctx = Context::new(&args, dev_tx.clone(), out_tx.clone()).unwrap();
+    let mut ctx = Context::new(&args, dev_tx.clone()).unwrap();
 
     //// START DEDICATED THREADS
     // Dedicated OS thread to handle the SDR device.
     device::start(
         &args,
-        ctx.scan_manager.current(),
+        ctx.scan.current(),
         dev_rx,
         in_tx.clone(),
         process_tx,
@@ -67,7 +68,9 @@ async fn main() {
                 match input {
                     Input::DeviceFreqUpdated => {
                     while let Ok(_) = process_rx.try_recv() {}
-                    ctx.process_blocks = true
+                        // TODO: Figure out what types should be returned from each thing...
+                    out_tx.send(Output::Display(DisplayInfo {center_freq: ctx.scan.current(), rate: ctx.scan.rate() as usize})).unwrap();
+                    ctx.process.start()
                 },
                     Input::ClientAtLeastOneConnected => {
                         dev_tx.clone().send(DevMsg::ClientsConnected(true)).await.unwrap();
@@ -77,40 +80,43 @@ async fn main() {
             },
 
             // Handle IQ & Freq blocks being sent from the SDR.
-            Some((iq_block, freq_block)) = process_rx.recv(), if ctx.process_blocks => {
+            Some((iq_block, freq_block)) = process_rx.recv(), if ctx.process.is_processing() => {
                 // Add the IQ block and update the average Freq block for the current context.
-                ctx.collected_iq.push(iq_block);
-                ctx.update_average(freq_block);
+                ctx.current.update(iq_block, freq_block);
 
                 // If no peaks have been detected and enough blocks have been collected to detect
-                // peaks determine if there are peaks within the spectrum.
-                if ctx.peaks.is_empty() && ctx.collected_iq.len() >= ctx.blocks_required_for_average {
-                    ctx.detect_peaks();
+                //  peaks, determine if there are peaks within the spectrum.
+                if ctx.current.peak_detection_criteria_met(&ctx.process) {
+                    ctx.current.detect_peaks(&ctx.process);
 
+                    // TODO: Tidy this up..
                     // If no peaks were detected, then we clean up the current context and move on
-                    match (ctx.peaks.is_empty(), &ctx.mode, ctx.completed_required_scan_cycles()) {
+                    match (ctx.current.peaks.is_empty(), &ctx.scan.mode, ctx.scan.cycles() >= ctx.process.scan_cycles_required) {
                         (true, _, _) => {ctx.next(); continue;},
                         (false, mode, completed_required_scan_cycles) => {
-                            out_tx.send(Output::Peaks(ctx.peaks.clone())).unwrap();
+                            out_tx.send(Output::Peaks(ctx.current.peaks.clone())).unwrap();
                             if mode == &ScanMode::SweepThenProcess && !completed_required_scan_cycles {
                                 ctx.next();
                                 continue;
                             }
                         },
                     }
+
                 }
 
+                // TODO: Probably a top level wrapper here..
                 // If peaks have been detected and enough IQ blocks have been stored for the metadata
                 //  extraction, this section of code will be run.
-                if ctx.collected_iq.len() > ctx.blocks_required_for_metadata {
+                if ctx.current.collected_iq.len() > ctx.process.num_required_for_metadata {
                     // Take the peaks and IQ blocks from the current context
-                    let peaks = std::mem::take(&mut ctx.peaks);
-                    let iq_blocks = std::mem::take(&mut ctx.collected_iq);
+                    let peaks = std::mem::take(&mut ctx.current.peaks);
+                    let iq_blocks = std::mem::take(&mut ctx.current.collected_iq);
 
                     // Spawn a green thread to run as a background task when the scheduler has
                     // time. It handles reporting sending its output to the appropriate channel
                     // directly.
-                    let process_ctx = ProcessContext::new(0.0,0.0,ProcessType::PreProcess, out_tx.clone());
+                    // TODO: This should be cleaner as well.
+                    let process_ctx = ProcessContext::new(ctx.scan.current() as f32,ctx.scan.rate() as f32,ProcessType::PreProcess, out_tx.clone());
                     tokio::task::spawn(async move {process_peaks(process_ctx, iq_blocks, &peaks);});
 
                     // Clean up the current context and move on

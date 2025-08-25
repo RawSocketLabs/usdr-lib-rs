@@ -1,3 +1,4 @@
+use std::time::Duration;
 // VENDOR CRATES
 use sdr::{Device, SdrControl, remove_dc_offset};
 
@@ -42,7 +43,7 @@ fn change_dev_freq<T: SdrControl>(
     let _ = device.set_center_frequency(ctx.freq);
 
     // Give the SDR time to actually change over to the new center freq
-    std::thread::sleep(ctx.update_sleep_time);
+    std::thread::sleep(Duration::from_millis(100));
 
     // Send the message back up that we have switched frequencies
     // TODO: Properly handle errors here...

@@ -13,6 +13,8 @@ chrono = "0.4.41"
 rayon = "1.10.0"
 comms = {path = "../sdrscanner-comms"}
 sdr = {path = "../libsdr"}
+rust-dsdcc = {path = "../rust_dsdcc"}
+
 bincode = "2.0.1"
 
 
