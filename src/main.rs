@@ -14,7 +14,7 @@ use sdr::FreqBlock;
 // LOCAL CRATES
 use crate::context::ScanMode;
 use crate::io::{Input, Output};
-use crate::process::{ProcessContext, ProcessType, process_peaks};
+use crate::process::{process_peaks, ProcessContext, ProcessType};
 use crate::{cli::Cli, context::Context, device::DevMsg};
 
 #[tokio::main]
@@ -84,21 +84,19 @@ async fn main() {
 
                 // If no peaks have been detected and enough blocks have been collected to detect
                 // peaks determine if there are peaks within the spectrum.
-                if ctx.peaks.is_empty() {
-                    if ctx.collected_iq.len() >= ctx.blocks_required_for_average {
-                        ctx.detect_peaks();
+                if ctx.peaks.is_empty() && ctx.collected_iq.len() >= ctx.blocks_required_for_average {
+                    ctx.detect_peaks();
 
-                        // If no peaks were detected, then we clean up the current context and move on
-                        match (ctx.peaks.is_empty(), &ctx.mode, ctx.completed_required_scan_cycles()) {
-                            (true, _, _) => {ctx.next(); continue;},
-                            (false, mode, completed_required_scan_cycles) => {
-                                out_tx.send(Output::Peaks(ctx.peaks.clone())).unwrap();
-                                if mode == &ScanMode::SweepThenProcess && !completed_required_scan_cycles {
-                                    ctx.next();
-                                    continue;
-                                }
-                            },
-                        }
+                    // If no peaks were detected, then we clean up the current context and move on
+                    match (ctx.peaks.is_empty(), &ctx.mode, ctx.completed_required_scan_cycles()) {
+                        (true, _, _) => {ctx.next(); continue;},
+                        (false, mode, completed_required_scan_cycles) => {
+                            out_tx.send(Output::Peaks(ctx.peaks.clone())).unwrap();
+                            if mode == &ScanMode::SweepThenProcess && !completed_required_scan_cycles {
+                                ctx.next();
+                                continue;
+                            }
+                        },
                     }
                 }
 
