@@ -55,12 +55,13 @@ impl ScanManager {
         } else {
             self.idx = (self.idx + 1) % self.ranges.len();
             self.current = self.ranges[self.idx].start;
+            if self.idx == 0 {
+                self.cycles_completed += 1;
+            }
         }
 
         // Update the cycle count
-        if self.idx == 0 {
-            self.cycles_completed += 1;
-        }
+
 
         // Send a message to the device
         self.dev_tx

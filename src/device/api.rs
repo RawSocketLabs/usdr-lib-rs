@@ -35,7 +35,7 @@ pub fn start(
         freq,
         args.fft_size,
         Window::Hann(Vec::with_capacity(0)),
-        Duration::from_millis(50),
+        Duration::from_millis(args.sleep_ms),
     );
     let channels = DevChannels::new(dev_rx, input_tx, process_tx, realtime_tx);
     let (file, rate, raw) = (args.file.clone(), args.rate, args.raw);

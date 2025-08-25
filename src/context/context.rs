@@ -97,7 +97,7 @@ impl Context {
         Ok(Self {
             peaks: vec![],
             process_blocks: true,
-            mode: ScanMode::SweepAndProcess,
+            mode: ScanMode::SweepThenProcess,
             average_freq_block: FreqBlock::new(),
             collected_iq: Vec::with_capacity(DEFAULT_BLOCKS_REQUIRED_FOR_METADATA),
             blocks_required_for_average: DEFAULT_BLOCKS_REQUIRED_FOR_AVERAGE,
