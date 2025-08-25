@@ -40,7 +40,7 @@ async fn main() {
     ////
 
     // Initialize variables into the top-level context object.
-    let mut ctx = Context::new(&args, dev_tx.clone()).unwrap();
+    let mut ctx = Context::new(&args, dev_tx.clone(), out_tx.clone()).unwrap();
 
     //// START DEDICATED THREADS
     // Dedicated OS thread to handle the SDR device.

@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 // THIRD PARTY CRATES
 use tokio::sync::mpsc::Sender;
+use tokio::sync::broadcast::Sender as BraodcastSender;
 // TODO: WOULD BE NICE TO REMOVE THIS DEPENDENCY BY PUSHING INTO LIBSDR
 use smoothed_z_score::PeaksDetector;
 
@@ -13,6 +14,7 @@ use sdr::{FreqBlock, FreqSample, IQBlock, update_average_db, find_peak_in_freq_b
 use crate::Cli;
 use crate::context::scan::{ScanManager, ScanMode};
 use crate::device::DevMsg;
+use crate::io::Output;
 
 pub(crate) const DEFAULT_BLOCKS_REQUIRED_FOR_AVERAGE: usize = 50;
 pub(crate) const DEFAULT_BLOCKS_REQUIRED_FOR_METADATA: usize = 1_000;
@@ -31,12 +33,8 @@ pub struct CurrentState {
 
 
 pub struct ProcessParameters {
-    freq_ranges_to_ignore: Vec<FreqRange>,
     scan_cycles_required: usize,
-}
-
-pub struct ContextChannels {
-
+    freq_ranges_to_ignore: Vec<FreqRange>,
 }
 
 //pub struct Testing {
@@ -90,9 +88,9 @@ pub(crate) struct Context {
 }
 
 impl Context {
-    pub fn new(args: &Cli, dev_tx: Sender<DevMsg>) -> Result<Self, ()> {
+    pub fn new(args: &Cli, dev_tx: Sender<DevMsg>, out_tx: BraodcastSender<Output>) -> Result<Self, ()> {
         // Validate the scan manager before moving it into the struct
-        let scan_manager = ScanManager::new(&args, dev_tx)?;
+        let scan_manager = ScanManager::new(&args, dev_tx, out_tx)?;
 
         Ok(Self {
             peaks: vec![],

@@ -2,8 +2,11 @@ use crate::cli::Cli;
 use crate::device::DevMsg;
 use std::str::FromStr;
 use std::time::Duration;
+use comms::DisplayInfo;
 use sdr::FreqRange;
 use tokio::sync::mpsc::Sender;
+use tokio::sync::broadcast::Sender as BroadcastSender;
+use crate::io::Output;
 
 pub struct ScanContext {
     mode: ScanMode,
@@ -20,10 +23,11 @@ pub(crate) struct ScanManager {
     sleep_duration: Duration,
     ranges: Vec<FreqRange>,
     dev_tx: Sender<DevMsg>,
+    out_tx: BroadcastSender<Output>,
 }
 
 impl ScanManager {
-    pub(crate) fn new(args: &Cli, dev_tx: Sender<DevMsg>) -> Result<Self, ()> {
+    pub(crate) fn new(args: &Cli, dev_tx: Sender<DevMsg>, out_tx: BroadcastSender<Output>) -> Result<Self, ()> {
         let ranges: Vec<FreqRange> = args
             .ranges
             .iter()
@@ -40,6 +44,7 @@ impl ScanManager {
                 current: ranges[0].start,
                 ranges,
                 dev_tx,
+                out_tx,
             }),
         }
     }
@@ -59,14 +64,15 @@ impl ScanManager {
                 self.cycles_completed += 1;
             }
         }
-
-        // Update the cycle count
-
+        
+        self.out_tx.send(Output::Display(DisplayInfo { center_freq: self.current, rate: self.rate as usize})).unwrap();
 
         // Send a message to the device
+        // TODO: Handle errors properly
         self.dev_tx
             .try_send(DevMsg::ChangeFreq(self.current))
             .unwrap();
+
     }
 }
 
