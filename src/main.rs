@@ -33,7 +33,7 @@ async fn main() {
     let (in_tx, mut in_rx) = channel::<Input>(512);
 
     // Structured messages from the program destin to external applications.
-    let (out_tx, out_rx) = broadcast::channel::<Output>(512);
+    let (out_tx, _) = broadcast::channel::<Output>(512);
 
     // Realtime messages from internal threads to external applications.
     let (realtime_tx, realtime_rx) = watch::channel(FreqBlock::new());
