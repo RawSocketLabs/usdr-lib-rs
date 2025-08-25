@@ -14,22 +14,17 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tokio::sync::{mpsc, watch};
 
-pub struct ScanResults {
-    peaks: Vec<FreqSample>,
-    center_freq: u32,
-}
-
 pub struct App {
     current_freq_block_rx: watch::Receiver<FreqBlock>,
-    frequency_rx: mpsc::Receiver<u32>,
+    center_freq_rx: mpsc::Receiver<u32>,
     sample_rate: u32,
-    scan_rx: mpsc::Receiver<ScanResults>,
+    peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
     x_bounds: [f64; 2],
     y_bounds: [f64; 2],
     current_freq_block: FreqBlock,
     should_quit: bool,
     frequency: u32,
-    latest_scan_results: Option<ScanResults>,
+    current_peaks: Option<Vec<FreqSample>>,
 }
 
 impl App {
@@ -48,9 +43,9 @@ impl App {
 
         let mut datasets = vec![dataset];
 
-        let peaks_vec = match self.latest_scan_results.as_ref() {
+        let peaks_vec = match self.current_peaks.as_ref() {
             Some(v) => {
-                v.peaks
+                v
                     .iter()
                     .map(|sample| ((sample.freq as f64 / 1e6), sample.db as f64))
                     .collect::<Vec<(f64, f64)>>()
@@ -108,8 +103,8 @@ impl App {
 
     pub fn new(
         current_freq_block_rx: watch::Receiver<FreqBlock>,
-        frequency_rx: mpsc::Receiver<u32>,
-        scan_rx: mpsc::Receiver<ScanResults>,
+        center_freq_rx: mpsc::Receiver<u32>,
+        peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
         sample_rate: u32,
         start_freq: u32,
     ) -> Self {
@@ -118,15 +113,15 @@ impl App {
         let center_mhz = frequency / 1e6 as u32;
         Self {
             current_freq_block_rx,
-            frequency_rx,
+            center_freq_rx,
             sample_rate,
-            scan_rx,
+            peaks_rx,
             frequency,
             x_bounds: [center_mhz as f64 - half_span_mhz as f64, center_mhz as f64 + half_span_mhz as f64],
             y_bounds: [-60.0, 0.0],
             current_freq_block: Vec::new(),
             should_quit: false,
-            latest_scan_results: None,
+            current_peaks: None,
         }
     }
 
@@ -136,12 +131,12 @@ impl App {
         while !self.should_quit {
             self.current_freq_block = self.current_freq_block_rx.borrow().to_vec();
 
-            while let Ok(f) = self.frequency_rx.try_recv() {
+            while let Ok(f) = self.center_freq_rx.try_recv() {
                 self.frequency = f;
             }
 
-            while let Ok(results) = self.scan_rx.try_recv() {
-                self.latest_scan_results = Some(results);
+            while let Ok(results) = self.peaks_rx.try_recv() {
+                self.current_peaks = Some(results);
             }
 
             while event::poll(Duration::from_millis(0))? {
@@ -236,18 +231,18 @@ impl App {
         let results_area = areas[1];
         // Prepare lines from the latest ScanResults
         let mut result_lines = Vec::new();
-        if let Some(ref scan) = self.latest_scan_results {
+        if let Some(ref peaks) = self.current_peaks {
             // Show center frequency
             result_lines.push(Line::from(vec![Span::raw(format!(
                 "Center Frequency: {:.3} MHz",
-                scan.center_freq as f64 / 1000000f64
+                center_frequency / 1000000f64
             ))]));
             // Show peaks
-            if scan.peaks.is_empty() {
+            if peaks.is_empty() {
                 result_lines.push(Line::from(vec![Span::raw("No peaks detected")]));
             } else {
                 result_lines.push(Line::from(vec![Span::raw("Peaks:")]));
-                for &sample in &scan.peaks {
+                for &sample in peaks {
                     result_lines.push(Line::from(vec![Span::raw(format!(
                         "  {:.3} MHz: {:.2} dB",
                         sample.freq as f32 / 1e6, sample.db
