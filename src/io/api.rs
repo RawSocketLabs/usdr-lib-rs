@@ -7,6 +7,8 @@ use crate::io::{Input, Output};
 
 pub async fn start(in_tx: Sender<Input>, out_tx: BroadcastSender<Output>, realtime_rx: WatchReceiver<FreqBlock>) {
     tokio::task::spawn(async move {
+        // TODO: Make this better...
+        std::fs::remove_file("/tmp/sdrscanner").unwrap_or(());
         let listener = UnixListener::bind("/tmp/sdrscanner").unwrap();
 
         for stream in listener.incoming() {
