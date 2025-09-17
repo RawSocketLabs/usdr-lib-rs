@@ -3,7 +3,7 @@ use rayon::prelude::*;
 use rust_dsdcc::DSDDecoder;
 use rust_dsdcc::ffi::DSDDecodeMode;
 // VENDOR CRATES
-use sdr::{FreqSample, IQBlock, freq_shift_iq_block};
+use sdr::{FreqSample, IQBlock, freq_shift_iq_block, DmrProcessor};
 
 use crate::process::{ProcessContext, SignalMetadata, SignalPreProcessor};
 
@@ -25,20 +25,13 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &Vec<F
             let mut signal_pre_processor = SignalPreProcessor::new(flat);
             let _ = signal_pre_processor.run().unwrap();
 
-            let dsd_decoder = DSDDecoder::new();
-            dsd_decoder.set_decode_mode(DSDDecodeMode::DSDDecodeDMR, true);
+            let mut dmr_processor = DmrProcessor::new();
+            for sample in signal_pre_processor.get_processed_samples() {
+                dmr_processor.push_sample(sample);
+            }
 
-            let mut slot0 = String::new();
-            let mut slot1 = String::new();
-            for sample_chunk in signal_pre_processor.get_processed_samples().chunks(10) {
-                for sample in sample_chunk {
-                    dsd_decoder.run(*sample);
-                }
-                if slot0 != dsd_decoder.get_slot_0_text() || slot1 != dsd_decoder.get_slot_1_text() {
-                    slot0 = dsd_decoder.get_slot_0_text();
-                    slot1 = dsd_decoder.get_slot_1_text();
-                    println!("{} | {}", slot0, slot1);
-                }
+            for burst in dmr_processor.get_bursts() {
+                println!("{:#?}", burst);
             }
 
             // TODO: Metadata decode happens here as well... can be a decision (via injected context options)
