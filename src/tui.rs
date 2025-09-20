@@ -28,7 +28,31 @@ pub struct App {
 }
 
 impl App {
-    fn render_fft_chart(&self, frame: &mut Frame<'_>, area: Rect) {
+    pub fn new(
+        current_freq_block_rx: watch::Receiver<FreqBlock>,
+        center_freq_rx: mpsc::Receiver<u32>,
+        peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
+        sample_rate: u32,
+        start_freq: u32,
+    ) -> Self {
+        let frequency = start_freq;
+        let half_span_mhz = (sample_rate / 2) / 1e6 as u32;
+        let center_mhz = frequency / 1e6 as u32;
+        Self {
+            current_freq_block_rx,
+            center_freq_rx,
+            sample_rate,
+            peaks_rx,
+            frequency,
+            x_bounds: [center_mhz as f64 - half_span_mhz as f64, center_mhz as f64 + half_span_mhz as f64],
+            y_bounds: [-60.0, 0.0],
+            current_freq_block: Vec::new(),
+            should_quit: false,
+            current_peaks: None,
+        }
+    }
+
+    fn render_fft_chart(&self, frame: &mut Frame, area: Rect) {
         let freq_block_vec = self
             .current_freq_block
             .iter()
@@ -44,12 +68,15 @@ impl App {
         let mut datasets = vec![dataset];
 
         let peaks_vec = match self.current_peaks.as_ref() {
-            Some(v) => {
-                v
-                    .iter()
-                    .map(|sample| ((sample.freq as f64 / 1e6), sample.db as f64))
-                    .collect::<Vec<(f64, f64)>>()
-            },
+            Some(peaks) => {
+                let mut result = Vec::new();
+                for peak in peaks {
+                    for i in (peak.db as i32)..=self.y_bounds[1] as i32 {
+                        result.push((peak.freq as f64 / 1e6, i as f64));
+                    }
+                }
+                result
+            }
             None => {
                 Vec::new()
             }
@@ -59,11 +86,12 @@ impl App {
             let peaks_dataset = Dataset::default()
                 .name("Peaks")
                 .marker(Marker::Braille)
-                .graph_type(GraphType::Bar)
+                .graph_type(GraphType::Scatter)
                 .style(Style::default().fg(Color::Red))
                 .data(&peaks_vec);
             datasets.push(peaks_dataset);
         }
+
         let chart = Chart::new(datasets)
             .block(
                 Block::default()
@@ -99,30 +127,6 @@ impl App {
                     }),
             );
         frame.render_widget(chart, area);
-    }
-
-    pub fn new(
-        current_freq_block_rx: watch::Receiver<FreqBlock>,
-        center_freq_rx: mpsc::Receiver<u32>,
-        peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
-        sample_rate: u32,
-        start_freq: u32,
-    ) -> Self {
-        let frequency = start_freq;
-        let half_span_mhz = (sample_rate / 2) / 1e6 as u32;
-        let center_mhz = frequency / 1e6 as u32;
-        Self {
-            current_freq_block_rx,
-            center_freq_rx,
-            sample_rate,
-            peaks_rx,
-            frequency,
-            x_bounds: [center_mhz as f64 - half_span_mhz as f64, center_mhz as f64 + half_span_mhz as f64],
-            y_bounds: [-60.0, 0.0],
-            current_freq_block: Vec::new(),
-            should_quit: false,
-            current_peaks: None,
-        }
     }
 
     pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
@@ -163,24 +167,22 @@ impl App {
                 self.should_quit = true;
             }
             KeyCode::Up => {
-                // Shift y-axis range up by 1 dB
-                self.y_bounds[0] += 5.0;
+                self.y_bounds[0] += if self.y_bounds[0] + 10.0 < self.y_bounds[1] {5.0} else {0.0};
             }
             KeyCode::Down => {
-                // Shift y-axis range down by 1 dB
-                self.y_bounds[0] -= 5.0;
+                self.y_bounds[0] -= if self.y_bounds[0] - 5.0 > -200.0 {5.0} else {0.0};
             }
             KeyCode::Right => {
-                self.y_bounds[1] += 5.0;
+                self.y_bounds[1] += if self.y_bounds[1] + 5.0 < 200.0 {5.0} else {0.0};
             }
             KeyCode::Left => {
-                self.y_bounds[1] -= 5.0;
+                self.y_bounds[1] -= if self.y_bounds[1] - 10.0 > self.y_bounds[0] {5.0} else {0.0};
             }
             _ => {}
         }
     }
 
-    fn draw(&mut self, frame: &mut Frame<'_>) {
+    fn draw(&mut self, frame: &mut Frame) {
         let center_frequency = self.frequency as f64 / 1e6;
         let half_span_mhz = self.sample_rate as f64 / 2.0 / 1e6;
         self.x_bounds = [
@@ -235,7 +237,7 @@ impl App {
             // Show center frequency
             result_lines.push(Line::from(vec![Span::raw(format!(
                 "Center Frequency: {:.3} MHz",
-                center_frequency / 1000000f64
+                center_frequency
             ))]));
             // Show peaks
             if peaks.is_empty() {

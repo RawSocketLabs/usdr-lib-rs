@@ -1,12 +1,10 @@
 mod tui;
 
 use crate::tui::App;
-use bincode::error::DecodeError;
 use bincode::{Decode, Encode};
 use comms::{ConnectionType, External};
-use sdr::{FreqBlock, FreqSample};
+use sdr::{FreqBlock};
 use std::os::unix::net::UnixStream;
-use tokio::select;
 use tokio::sync::mpsc::channel;
 use tokio::sync::watch::channel as watch_channel;
 
