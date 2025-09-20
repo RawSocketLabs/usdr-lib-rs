@@ -1,261 +1,82 @@
-use color_eyre::Result;
-use crossterm::event::{self, Event, KeyCode, KeyEvent};
-use ratatui::{
-    DefaultTerminal, Frame,
-    layout::{Constraint, Layout, Rect},
-    style::{Color, Style},
-    symbols,
-    symbols::Marker,
-    text::{Line, Span},
-    widgets::{Axis, Block, Borders, Chart, Dataset, GraphType, Paragraph},
-};
-use sdr::{FreqBlock, FreqSample};
-use std::thread;
-use std::time::{Duration, Instant};
-use tokio::sync::{mpsc, watch};
+use std::{io, panic};
+use std::io::Error;
+use ratatui::crossterm::{execute, terminal};
+use ratatui::crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use ratatui::crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
+use ratatui::layout::{Constraint, Layout};
+use crate::app::App;
+use crate::event::EventHandler;
+use crate::ui;
 
-pub struct App {
-    current_freq_block_rx: watch::Receiver<FreqBlock>,
-    center_freq_rx: mpsc::Receiver<u32>,
-    sample_rate: u32,
-    peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
-    x_bounds: [f64; 2],
-    y_bounds: [f64; 2],
-    current_freq_block: FreqBlock,
-    should_quit: bool,
-    frequency: u32,
-    current_peaks: Option<Vec<FreqSample>>,
+pub type CrosstermTerminal = ratatui::Terminal<ratatui::backend::CrosstermBackend<io::Stderr>>;
+
+pub struct Tui {
+    terminal: CrosstermTerminal,
+    pub events: EventHandler,
+
 }
 
-impl App {
-    pub fn new(
-        current_freq_block_rx: watch::Receiver<FreqBlock>,
-        center_freq_rx: mpsc::Receiver<u32>,
-        peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
-        sample_rate: u32,
-        start_freq: u32,
-    ) -> Self {
-        let frequency = start_freq;
-        let half_span_mhz = (sample_rate / 2) / 1e6 as u32;
-        let center_mhz = frequency / 1e6 as u32;
-        Self {
-            current_freq_block_rx,
-            center_freq_rx,
-            sample_rate,
-            peaks_rx,
-            frequency,
-            x_bounds: [center_mhz as f64 - half_span_mhz as f64, center_mhz as f64 + half_span_mhz as f64],
-            y_bounds: [-60.0, 0.0],
-            current_freq_block: Vec::new(),
-            should_quit: false,
-            current_peaks: None,
-        }
+impl Tui {
+    /// Constructs a new instance of [`Tui`].
+    pub fn new(terminal: CrosstermTerminal, events: EventHandler) -> Self {
+        Self { terminal, events }
     }
 
-    fn render_fft_chart(&self, frame: &mut Frame, area: Rect) {
-        let freq_block_vec = self
-            .current_freq_block
-            .iter()
-            .map(|f| ((f.freq as f64 / 1e6), f.db as f64))
-            .collect::<Vec<(f64, f64)>>();
+    /// Initializes the terminal interface.
+    ///
+    /// It enables the raw mode and sets terminal properties.
+    pub fn enter(&mut self) -> Result<(), Error> {
+        terminal::enable_raw_mode()?;
+        execute!(io::stderr(), EnterAlternateScreen, EnableMouseCapture)?;
 
-        let dataset = Dataset::default()
-            .marker(symbols::Marker::Braille)
-            .graph_type(GraphType::Line)
-            .style(Style::default().fg(Color::Cyan))
-            .data(&freq_block_vec);
+        // Define a custom panic hook to reset the terminal properties.
+        // This way, you won't have your terminal messed up if an unexpected error happens.
+        let panic_hook = panic::take_hook();
+        panic::set_hook(Box::new(move |panic| {
+            Self::reset().expect("failed to reset the terminal");
+            panic_hook(panic);
+        }));
 
-        let mut datasets = vec![dataset];
-
-        let peaks_vec = match self.current_peaks.as_ref() {
-            Some(peaks) => {
-                let mut result = Vec::new();
-                for peak in peaks {
-                    for i in (peak.db as i32)..=self.y_bounds[1] as i32 {
-                        result.push((peak.freq as f64 / 1e6, i as f64));
-                    }
-                }
-                result
-            }
-            None => {
-                Vec::new()
-            }
-        };
-
-        if !peaks_vec.is_empty() {
-            let peaks_dataset = Dataset::default()
-                .name("Peaks")
-                .marker(Marker::Braille)
-                .graph_type(GraphType::Scatter)
-                .style(Style::default().fg(Color::Red))
-                .data(&peaks_vec);
-            datasets.push(peaks_dataset);
-        }
-
-        let chart = Chart::new(datasets)
-            .block(
-                Block::default()
-                    .title("FFT Display (Press q to exit)")
-                    .borders(Borders::ALL),
-            )
-            .x_axis(
-                Axis::default()
-                    .title("Frequency (MHz)")
-                    .style(Style::default().fg(Color::Gray))
-                    .bounds(self.x_bounds)
-                    .labels({
-                        let mut labels = Vec::new();
-                        labels.push(Span::raw(""));
-                        labels
-                    }),
-            )
-            .y_axis(
-                Axis::default()
-                    .title("Magnitude (dB)")
-                    .style(Style::default().fg(Color::Gray))
-                    .bounds(self.y_bounds)
-                    .labels({
-                        let y_min = self.y_bounds[0].floor() as i32;
-                        let y_max = self.y_bounds[1].ceil() as i32;
-                        let start = (y_min / 10) * 10;
-                        let end = ((y_max + 9) / 10) * 10;
-                        let mut lab = Vec::new();
-                        for val in (start..=end).step_by(10) {
-                            lab.push(Span::raw(format!("{}", val)));
-                        }
-                        lab
-                    }),
-            );
-        frame.render_widget(chart, area);
-    }
-
-    pub fn run(mut self, mut terminal: DefaultTerminal) -> Result<()> {
-        let tick_rate = Duration::from_millis(30);
-        let mut last_tick = Instant::now();
-        while !self.should_quit {
-            self.current_freq_block = self.current_freq_block_rx.borrow().to_vec();
-
-            while let Ok(f) = self.center_freq_rx.try_recv() {
-                self.frequency = f;
-            }
-
-            while let Ok(results) = self.peaks_rx.try_recv() {
-                self.current_peaks = Some(results);
-            }
-
-            while event::poll(Duration::from_millis(0))? {
-                if let Event::Key(key) = event::read()? {
-                    self.handle_input(key);
-                }
-            }
-
-            terminal.draw(|frame| {
-                self.draw(frame);
-            })?;
-            let timeout = tick_rate.saturating_sub(last_tick.elapsed());
-            thread::sleep(timeout);
-            last_tick = Instant::now();
-        }
-        terminal.clear()?;
-        terminal.show_cursor()?;
+        self.terminal.hide_cursor()?;
+        self.terminal.clear()?;
         Ok(())
     }
 
-    fn handle_input(&mut self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Char('q') => {
-                self.should_quit = true;
-            }
-            KeyCode::Up => {
-                self.y_bounds[0] += if self.y_bounds[0] + 10.0 < self.y_bounds[1] {5.0} else {0.0};
-            }
-            KeyCode::Down => {
-                self.y_bounds[0] -= if self.y_bounds[0] - 5.0 > -200.0 {5.0} else {0.0};
-            }
-            KeyCode::Right => {
-                self.y_bounds[1] += if self.y_bounds[1] + 5.0 < 200.0 {5.0} else {0.0};
-            }
-            KeyCode::Left => {
-                self.y_bounds[1] -= if self.y_bounds[1] - 10.0 > self.y_bounds[0] {5.0} else {0.0};
-            }
-            _ => {}
-        }
+
+    /// [`Draw`] the terminal interface by [`rendering`] the widgets.
+    ///
+    /// [`Draw`]: tui::Terminal::draw
+    /// [`rendering`]: crate::ui:render
+    pub fn draw(&mut self, app: &mut App) -> Result<(), Error> {
+        self.terminal.draw(|frame| {
+            let areas = Layout::default()
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+                .split(frame.area());
+            let fft_area = areas[0];
+            let metadata_area = areas[1];
+
+            ui::render_fft_chart(app, frame, fft_area);
+            ui::render_metadata(app, frame, metadata_area);
+        })?;
+        Ok(())
     }
 
-    fn draw(&mut self, frame: &mut Frame) {
-        let center_frequency = self.frequency as f64 / 1e6;
-        let half_span_mhz = self.sample_rate as f64 / 2.0 / 1e6;
-        self.x_bounds = [
-            center_frequency - half_span_mhz,
-            center_frequency + half_span_mhz,
-        ];
+    /// Resets the terminal interface.
+    ///
+    /// This function is also used for the panic hook to revert
+    /// the terminal properties if unexpected errors occur.
+    fn reset() -> Result<(), Error> {
+        terminal::disable_raw_mode()?;
+        execute!(io::stderr(), LeaveAlternateScreen, DisableMouseCapture)?;
+        Ok(())
+    }
 
-        let areas = Layout::default()
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-            .split(frame.area());
-        let fft_area = areas[0];
-
-        self.render_fft_chart(frame, fft_area);
-
-        {
-            let x_min = self.x_bounds[0];
-            let x_max = self.x_bounds[1];
-            let width = fft_area.width as usize;
-            let mut spans = Vec::with_capacity(width);
-            for _col in 0..width {
-                spans.push(Span::raw(" "));
-            }
-            for i in 0..=10 {
-                let frac = i as f64 / 10.0;
-                let value = x_min + frac * (x_max - x_min);
-                let label = format!("{:.2}", value);
-                let col = ((width.saturating_sub(label.len())) as f64 * frac).round() as usize;
-                for (j, ch) in label.chars().enumerate() {
-                    if col + j < spans.len() {
-                        spans[col + j] = Span::raw(ch.to_string());
-                    }
-                }
-            }
-            let line = Line::from(spans);
-            let label_row = Rect {
-                x: fft_area.x + 1,
-                y: fft_area.y + fft_area.height - 1,
-                width: fft_area.width - 2,
-                height: 1,
-            };
-            frame.render_widget(
-                Paragraph::new(vec![line]).style(Style::default().fg(Color::Gray)),
-                label_row,
-            );
-        }
-
-        // Render latest scan results in the bottom area
-        let results_area = areas[1];
-        // Prepare lines from the latest ScanResults
-        let mut result_lines = Vec::new();
-        if let Some(ref peaks) = self.current_peaks {
-            // Show center frequency
-            result_lines.push(Line::from(vec![Span::raw(format!(
-                "Center Frequency: {:.3} MHz",
-                center_frequency
-            ))]));
-            // Show peaks
-            if peaks.is_empty() {
-                result_lines.push(Line::from(vec![Span::raw("No peaks detected")]));
-            } else {
-                result_lines.push(Line::from(vec![Span::raw("Peaks:")]));
-                for &sample in peaks {
-                    result_lines.push(Line::from(vec![Span::raw(format!(
-                        "  {:.3} MHz: {:.2} dB",
-                        sample.freq as f32 / 1e6, sample.db
-                    ))]));
-                }
-            }
-        } else {
-            result_lines.push(Line::from(vec![Span::raw("No scan results yet")]));
-        }
-        let results_block = Paragraph::new(result_lines)
-            .block(Block::default().title("Scan Results").borders(Borders::ALL));
-        frame.render_widget(results_block, results_area);
+    /// Exits the terminal interface.
+    ///
+    /// It disables the raw mode and reverts back the terminal properties.
+    pub fn exit(&mut self) -> Result<(), Error> {
+        Self::reset()?;
+        self.terminal.show_cursor()?;
+        Ok(())
     }
 }
