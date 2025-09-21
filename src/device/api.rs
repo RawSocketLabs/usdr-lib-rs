@@ -46,7 +46,7 @@ pub fn start(
             .sample(channels, ctx),
         Some(path) => {
             if raw {
-                Device::<RawFile>::new(path).sample(channels, ctx)
+                Device::<RawFile>::new(path, rate).sample(channels, ctx)
             } else {
                 Device::<WavFile>::new(path).sample(channels, ctx)
             }

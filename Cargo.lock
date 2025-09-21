@@ -805,6 +805,7 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 name = "lru"
 version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -818,6 +819,8 @@ dependencies = [
 >>>>>>> c9c6e09 (Fixed bug in SweepThenProcess flow)
 =======
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
+=======
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
 name = "matrixmultiply"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -830,6 +833,7 @@ dependencies = [
 [[package]]
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 526027b (WIP: Further cleaned up)
 =======
@@ -840,6 +844,8 @@ dependencies = [
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
 =======
 >>>>>>> 00e0245 (swap out dsdcc for libsdr implementation)
+=======
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
 name = "memchr"
 version = "2.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -870,6 +876,7 @@ dependencies = [
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
@@ -891,11 +898,14 @@ dependencies = [
 >>>>>>> c9c6e09 (Fixed bug in SweepThenProcess flow)
 =======
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
+=======
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
 name = "ndarray"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "882ed72dce9365842bf196bdeedf5055305f11fc8c03dee7bb0194a6cad34841"
 dependencies = [
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -904,6 +914,8 @@ dependencies = [
 =======
  "approx",
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
+=======
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
  "matrixmultiply",
  "num-complex",
  "num-integer",
@@ -911,6 +923,7 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "rawpointer",
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -969,6 +982,11 @@ dependencies = [
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
 =======
 >>>>>>> 00e0245 (swap out dsdcc for libsdr implementation)
+=======
+]
+
+[[package]]
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
 name = "num-complex"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1062,6 +1080,7 @@ checksum = "3b3cff922bd51709b605d9ead9aa71031d81447142d828eb4a6eba76fe619f9b"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
@@ -1099,6 +1118,8 @@ dependencies = [
 >>>>>>> c9c6e09 (Fixed bug in SweepThenProcess flow)
 =======
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
+=======
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
 name = "portable-atomic"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1114,6 +1135,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -1142,6 +1164,8 @@ dependencies = [
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
 =======
 >>>>>>> 00e0245 (swap out dsdcc for libsdr implementation)
+=======
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
 name = "primal-check"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1198,6 +1222,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
 
 [[package]]
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -1307,12 +1332,15 @@ dependencies = [
 ]
 
 [[package]]
+=======
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
 name = "rawpointer"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 
 [[package]]
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -1325,6 +1353,8 @@ checksum = "60a357793950651c4ed0f3f52338f53b2f809f32d83a07f72909fa13e4c6c1e3"
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
 =======
 >>>>>>> 00e0245 (swap out dsdcc for libsdr implementation)
+=======
+>>>>>>> 64f94a3 (Send sample rate to rawfile)
 name = "rayon"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
