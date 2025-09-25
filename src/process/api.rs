@@ -1,18 +1,14 @@
+use std::collections::HashSet;
 // THIRD PARTY CRATES
 use rayon::prelude::*;
-use rust_dsdcc::DSDDecoder;
-use rust_dsdcc::ffi::DSDDecodeMode;
 // VENDOR CRATES
-use sdr::{FreqSample, IQBlock, freq_shift_iq_block, DmrProcessor};
-
 use crate::process::{ProcessContext, SignalMetadata, SignalPreProcessor};
+use sdr::{Burst, DmrProcessor, FreqSample, IQBlock, freq_shift_iq_block};
 
 pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &Vec<FreqSample>) {
-    let mut flat: IQBlock = iq_blocks.into_iter().flatten().collect();
+    let flat: IQBlock = iq_blocks.into_iter().flatten().collect();
 
-    let mut blocks: Vec<(&FreqSample, IQBlock)> = peaks.iter().map(|p| (p, flat.clone())).collect();
-
-
+    let blocks: Vec<(&FreqSample, IQBlock)> = peaks.iter().map(|p| (p, flat.clone())).collect();
 
     let _res: Vec<SignalMetadata> = blocks
         .into_par_iter()
@@ -22,7 +18,7 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &Vec<F
                 ctx.sample_rate,
                 (peak.freq as i32 - ctx.center_freq as i32) as f32,
             );
-            let mut signal_pre_processor = SignalPreProcessor::new(flat);
+            let mut signal_pre_processor = SignalPreProcessor::new(flat, ctx.sample_rate);
             let _ = signal_pre_processor.run().unwrap();
 
             let mut dmr_processor = DmrProcessor::new();
@@ -30,8 +26,20 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &Vec<F
                 dmr_processor.push_sample(sample);
             }
 
+            let mut observed_messages = HashSet::new();
             for burst in dmr_processor.get_bursts() {
-                println!("{:#?}", burst);
+                match burst {
+                    Burst::Data(data_burst) => {
+                        observed_messages.insert(format!("{:?}", data_burst.slot_type.data_type()));
+                    },
+                    Burst::Voice(voice_burst) => {
+                        observed_messages.insert(String::from("Voice"));
+                    },
+                    _ => println!("INVALID BURST"),
+                }
+            }
+            if observed_messages.len() > 0 {
+                println!("{:.03} - {:?}", peak.freq as f32 / 1e6, observed_messages);
             }
 
             // TODO: Metadata decode happens here as well... can be a decision (via injected context options)

@@ -1,8 +1,14 @@
+use std::f32::consts::PI;
 use rustradio::{
     blocks::QuadratureDemod, fir::low_pass_complex, graph::GraphRunner, mtgraph::MTGraph,
     window::WindowType,
 };
 use sdr::{FreqSample, IQBlock};
+
+const CHANNEL_RATE: usize = 125000;
+const DMR_BANDWIDTH: usize = 12500;
+const AUDIO_RATE: usize = 48000;
+const SYMBOL_RATE: usize = 4800;
 
 pub struct SignalMetadata {
     pub timestamp: i64,
@@ -20,19 +26,22 @@ impl SignalPreProcessor {
     /// Creates a new DmrProcessor with the given IQ data.  This will construct a rustradio flowgraph for transforming IQ data into a format suitable for DMR processing.
     ///
     /// It is expected that the signal of interest is already centered within the input IQBlock.
-    pub fn new(data: IQBlock) -> Self {
+    pub fn new(data: IQBlock, rate: f32) -> Self {
+        let decimation_factor = rate as usize / CHANNEL_RATE;
+        let gain = CHANNEL_RATE as f32 / (2.0 * PI * SYMBOL_RATE as f32);
+
         let mut g = MTGraph::new();
         let (src, prev) = rustradio::blocks::VectorSource::new(data);
 
-        let taps = low_pass_complex(2000000.0, 12500.0, 2000.0, &WindowType::Hamming);
+        let taps = low_pass_complex(rate, DMR_BANDWIDTH as f32, 2000.0, &WindowType::Hamming);
 
         let (lowpass, prev) = rustradio::fir::FirFilter::builder(&taps)
-            .deci(16)
+            .deci(decimation_factor)
             .build(prev);
-        let (fm_demod, prev) = QuadratureDemod::new(prev, 3.5);
+        let (fm_demod, prev) = QuadratureDemod::new(prev, gain);
         let (resample, prev) =
-            rustradio::blocks::RationalResampler::new(prev, 48000, 125000).unwrap();
-        let (mul_const, prev) = rustradio::blocks::MultiplyConst::new(prev, 32767.0);
+            rustradio::blocks::RationalResampler::new(prev, AUDIO_RATE, CHANNEL_RATE).unwrap();
+        let (mul_const, prev) = rustradio::blocks::MultiplyConst::new(prev, i16::MAX as f32);
         let snk = rustradio::blocks::VectorSink::new(prev, 8695740);
         let snk_hook = snk.hook();
         g.add(Box::new(src));

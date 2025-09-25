@@ -216,6 +216,9 @@ dependencies = [
 
 [[package]]
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 48789e6 (Fix bug that limited processing of signals)
 name = "binfield_matrix"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -225,8 +228,11 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 =======
 >>>>>>> 02a17b6 (WIP: Attempt tui stuff)
+=======
+>>>>>>> 48789e6 (Fix bug that limited processing of signals)
 name = "binrw"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -301,6 +307,9 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 48789e6 (Fix bug that limited processing of signals)
 name = "cai_golay"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -310,6 +319,7 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "cassowary"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -350,6 +360,8 @@ dependencies = [
 >>>>>>> b8e8895 (Added a scan manager channel to report display output updates)
 =======
 >>>>>>> 00e0245 (swap out dsdcc for libsdr implementation)
+=======
+>>>>>>> 48789e6 (Fix bug that limited processing of signals)
 name = "cc"
 version = "1.2.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1511,7 +1523,11 @@ dependencies = [
  "bincode",
  "binrw",
  "bitbybit",
+<<<<<<< HEAD
 >>>>>>> 00e0245 (swap out dsdcc for libsdr implementation)
+=======
+ "cai_golay",
+>>>>>>> 48789e6 (Fix bug that limited processing of signals)
  "hound",
  "itertools 0.14.0",
  "ndarray",

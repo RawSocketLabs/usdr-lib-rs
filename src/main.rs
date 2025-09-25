@@ -15,7 +15,7 @@ use sdr::FreqBlock;
 // LOCAL CRATES
 use crate::context::ScanMode;
 use crate::io::{Input, Output};
-use crate::process::{process_peaks, ProcessContext, ProcessType};
+use crate::process::{ProcessContext, ProcessType, process_peaks};
 use crate::{cli::Cli, context::Context, device::DevMsg};
 
 #[tokio::main]
@@ -67,11 +67,11 @@ async fn main() {
             Some(input) = in_rx.recv() => {
                 match input {
                     Input::DeviceFreqUpdated => {
-                    while let Ok(_) = process_rx.try_recv() {}
-                        // TODO: Figure out what types should be returned from each thing...
-                    out_tx.send(Output::Display(DisplayInfo {center_freq: ctx.scan.current(), rate: ctx.scan.rate() as usize})).unwrap();
-                    ctx.process.start()
-                },
+                        while process_rx.try_recv().is_ok() {}
+                            // TODO: Figure out what types should be returned from each thing...
+                        out_tx.send(Output::Display(DisplayInfo {center_freq: ctx.scan.current(), rate: ctx.scan.rate() as usize})).unwrap();
+                        ctx.process.start()
+                    },
                     Input::ClientAtLeastOneConnected => {
                         dev_tx.clone().send(DevMsg::ClientsConnected(true)).await.unwrap();
                     }
