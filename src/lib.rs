@@ -1,4 +1,4 @@
-use sdr::{FreqSample, FreqBlock};
+pub use sdr::{FreqSample, FreqBlock};
 use bincode::{Decode, Encode};
 
 
