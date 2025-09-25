@@ -68,7 +68,7 @@ async fn main() {
                     peaks_tx.send(peaks).await.unwrap();
                 },
                 External::Display(display_info) => {
-                    center_freq_tx.send(display_info.center_freq as u32).await.unwrap();
+                    center_freq_tx.send(display_info).await.unwrap();
                 }
                 _ => {}
             }

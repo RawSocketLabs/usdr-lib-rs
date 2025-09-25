@@ -29,8 +29,9 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
 pub fn receive_new_data(app: &mut App) {
     app.current_freq_block = app.current_freq_block_rx.borrow().to_vec();
 
-    if let Ok(f) = app.center_freq_rx.try_recv() {
-        app.frequency = f;
+    if let Ok(display_info) = app.display_info_rx.try_recv() {
+        app.frequency = display_info.center_freq as u32;
+        app.sample_rate = display_info.rate as u32;
     }
 
     if let Ok(results) = app.peaks_rx.try_recv() {

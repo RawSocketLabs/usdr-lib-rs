@@ -1,9 +1,9 @@
-use comms::{FreqBlock, FreqSample};
+use comms::{DisplayInfo, FreqBlock, FreqSample};
 use tokio::sync::{mpsc, watch};
 
 pub struct App {
     pub current_freq_block_rx: watch::Receiver<FreqBlock>,
-    pub center_freq_rx: mpsc::Receiver<u32>,
+    pub display_info_rx: mpsc::Receiver<DisplayInfo>,
     pub sample_rate: u32,
     pub peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
     pub x_bounds: [f64; 2],
@@ -17,7 +17,7 @@ pub struct App {
 impl App {
     pub fn new(
         current_freq_block_rx: watch::Receiver<FreqBlock>,
-        center_freq_rx: mpsc::Receiver<u32>,
+        center_freq_rx: mpsc::Receiver<DisplayInfo>,
         peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
         sample_rate: u32,
         start_freq: u32,
@@ -27,7 +27,7 @@ impl App {
         let center_mhz = frequency / 1e6 as u32;
         Self {
             current_freq_block_rx,
-            center_freq_rx,
+            display_info_rx: center_freq_rx,
             sample_rate,
             peaks_rx,
             frequency,
