@@ -11,17 +11,15 @@ pub async fn start(in_tx: Sender<Input>, out_tx: BroadcastSender<Output>, realti
         std::fs::remove_file("/tmp/sdrscanner").unwrap_or(());
         let listener = UnixListener::bind("/tmp/sdrscanner").unwrap();
 
-        for stream in listener.incoming() {
-            if let Ok(stream) = stream {
-                let (in_tx, out_rx, realtime_rx) = (in_tx.clone(), out_tx.subscribe(), realtime_rx.clone());
-                let _ = tokio::task::spawn(async move { handle_client(stream, in_tx, out_rx, realtime_rx).await}).await;
-            }
+        for stream in listener.incoming().flatten() {
+            let (in_tx, out_rx, realtime_rx) = (in_tx.clone(), out_tx.subscribe(), realtime_rx.clone());
+            let _ = tokio::task::spawn(async move { handle_client(stream, in_tx, out_rx, realtime_rx).await}).await;
         }
     });
 }
 
-async fn handle_client(mut stream: UnixStream, in_tx: Sender<Input>, mut out_rx: BroadcastReceiver<Output>, mut realtime_rx: WatchReceiver<FreqBlock>) {
-    let mut config = bincode::config::standard().with_big_endian().with_fixed_int_encoding();
+async fn handle_client(mut stream: UnixStream, in_tx: Sender<Input>, out_rx: BroadcastReceiver<Output>, realtime_rx: WatchReceiver<FreqBlock>) {
+    let config = bincode::config::standard().with_big_endian().with_fixed_int_encoding();
 
     if let External::Connection(conn_type) = bincode::decode_from_std_read(&mut stream, config).unwrap() {
         // TODO: Handle errors

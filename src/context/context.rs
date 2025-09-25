@@ -4,10 +4,8 @@ use std::str::FromStr;
 // THIRD PARTY CRATES
 use tokio::sync::mpsc::Sender;
 // TODO: WOULD BE NICE TO REMOVE THIS DEPENDENCY BY PUSHING INTO LIBSDR
-use smoothed_z_score::PeaksDetector;
 
 // VENDOR CRATES
-use sdr::{FreqBlock, update_average_db, find_peak_in_freq_block, FreqRange};
 
 // LOCAL CRATE
 use crate::Cli;

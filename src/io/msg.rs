@@ -1,5 +1,4 @@
-use bincode::{Decode, Encode};
-use sdr::{FreqBlock, FreqSample};
+use sdr::FreqSample;
 use comms::{ConnectionType, DisplayInfo};
 
 #[derive(Clone, Debug)]

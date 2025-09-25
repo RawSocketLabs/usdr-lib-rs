@@ -19,7 +19,7 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &Vec<F
                 (peak.freq as i32 - ctx.center_freq as i32) as f32,
             );
             let mut signal_pre_processor = SignalPreProcessor::new(flat, ctx.sample_rate);
-            let _ = signal_pre_processor.run().unwrap();
+            signal_pre_processor.run().unwrap();
 
             let mut dmr_processor = DmrProcessor::new();
             for sample in signal_pre_processor.get_processed_samples() {
@@ -38,7 +38,7 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &Vec<F
                     _ => println!("INVALID BURST"),
                 }
             }
-            if observed_messages.len() > 0 {
+            if !observed_messages.is_empty() {
                 println!("{:.03} - {:?}", peak.freq as f32 / 1e6, observed_messages);
             }
 
@@ -47,7 +47,7 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &Vec<F
             // Collect the data into a structured output message rather than a specific type...
             SignalMetadata {
                 timestamp: chrono::Utc::now().timestamp_millis(),
-                peak: peak.clone(),
+                peak: *peak,
                 processed_samples: signal_pre_processor.get_processed_samples(),
             }
         })
