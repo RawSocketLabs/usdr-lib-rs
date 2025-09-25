@@ -55,12 +55,7 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
             Axis::default()
                 .title("Frequency (MHz)")
                 .style(Style::default().fg(Color::Gray))
-                .bounds(app.x_bounds)
-                .labels({
-                    let mut labels = Vec::new();
-                    labels.push(Span::raw(""));
-                    labels
-                }),
+                .bounds(app.x_bounds),
         )
         .y_axis(
             Axis::default()
