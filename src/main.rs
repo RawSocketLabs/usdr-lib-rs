@@ -11,7 +11,6 @@ use tokio::sync::{broadcast, mpsc::channel, watch};
 
 // VENDOR CRATES
 use sdr::FreqBlock;
-
 // LOCAL CRATES
 use crate::context::ScanMode;
 use crate::io::{Input, Output};
@@ -91,17 +90,11 @@ async fn main() {
 
                     // TODO: Tidy this up..
                     // If no peaks were detected, then we clean up the current context and move on
-                    match (ctx.current.peaks.is_empty(), &ctx.scan.mode, ctx.scan.cycles() >= ctx.process.scan_cycles_required) {
-                        (true, _, _) => {ctx.next(); continue;},
-                        (false, mode, completed_required_scan_cycles) => {
-                            out_tx.send(Output::Peaks(ctx.current.peaks.clone())).unwrap();
-                            if mode == &ScanMode::SweepThenProcess && !completed_required_scan_cycles {
-                                ctx.next();
-                                continue;
-                            }
-                        },
+                    out_tx.send(Output::Peaks(ctx.current.peaks.clone())).unwrap();
+                    if ctx.current.peaks.is_empty() || (ctx.scan.mode == ScanMode::SweepThenProcess && (ctx.scan.cycles() < ctx.process.scan_cycles_required)) {
+                        ctx.next();
+                        continue;
                     }
-
                 }
 
                 // TODO: Probably a top level wrapper here..

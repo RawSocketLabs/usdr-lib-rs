@@ -1,11 +1,11 @@
-use sdr::FreqRange;
+use sdr::{FreqRange, BITS_PER_BURST, SAMPLES_PER_SYMBOL_4800};
 use std::str::FromStr;
 
 use crate::cli::Cli;
+use crate::process::AUDIO_RATE;
 
 pub(crate) const DEFAULT_SCAN_CYCLES_REQUIRED_FOR_METADATA: usize = 1;
-pub(crate) const DEFAULT_BLOCKS_REQUIRED_FOR_AVERAGE: usize = 50;
-pub(crate) const DEFAULT_BLOCKS_REQUIRED_FOR_METADATA: usize = 1_000;
+pub(crate) const DEFAULT_BLOCKS_REQUIRED_FOR_AVERAGE: usize = 10;
 
 pub struct ProcessParameters {
     process: bool,
@@ -20,6 +20,7 @@ pub struct ProcessParameters {
 
 impl ProcessParameters {
     pub fn new(args: &Cli) -> Self {
+        let min_blocks_required_for_burst_recovery = (BITS_PER_BURST * 2 * SAMPLES_PER_SYMBOL_4800) as f32 / (args.fft_size as f32 * (AUDIO_RATE as f32 / args.rate as f32));
         Self {
             process: true,
             fft_size: args.fft_size,
@@ -29,7 +30,7 @@ impl ProcessParameters {
                 .scans_before_processing
                 .unwrap_or(DEFAULT_SCAN_CYCLES_REQUIRED_FOR_METADATA),
             num_required_for_average: args.blocks_for_average.unwrap_or(DEFAULT_BLOCKS_REQUIRED_FOR_AVERAGE),
-            num_required_for_metadata: args.blocks_for_metadata.unwrap_or(DEFAULT_BLOCKS_REQUIRED_FOR_METADATA),
+            num_required_for_metadata: args.blocks_for_metadata.unwrap_or(min_blocks_required_for_burst_recovery as usize),
             freq_ranges_to_ignore: args
                 .freq_ranges_to_ignore
                 .clone()
