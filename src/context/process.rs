@@ -1,6 +1,6 @@
-use sdr::{FreqRange, BITS_PER_BURST, SAMPLES_PER_SYMBOL_4800};
+use sdr::{FreqRange, SAMPLES_PER_SYMBOL_4800};
 use std::str::FromStr;
-
+use sdr::dmr::BITS_PER_BURST;
 use crate::cli::Cli;
 use crate::process::AUDIO_RATE;
 

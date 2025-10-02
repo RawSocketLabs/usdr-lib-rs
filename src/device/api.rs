@@ -9,11 +9,10 @@ use tokio::sync::{
 };
 
 // VENDOR CRATES
-use sdr::device::file::WavFile;
-use sdr::device::rtl::Rtl;
-use sdr::{Device, device::rawfile::RawFile};
-use sdr::{FreqBlock, IQBlock, Window};
-
+use sdr::{Device, FreqBlock, Hann, IQBlock, Window};
+use sdr::file::raw::RawFile;
+use sdr::file::wav::WavFile;
+use sdr::tuner::rtl::Rtl;
 // LOCAL CRATE
 use crate::io::Input;
 use crate::{
@@ -34,7 +33,7 @@ pub fn start(
         args.rate,
         freq,
         args.fft_size,
-        Window::Hann(Vec::with_capacity(0)),
+        Window::Hann(Hann::new(args.fft_size)),
         Duration::from_millis(args.sleep_ms),
     );
     let channels = DevChannels::new(dev_rx, input_tx, process_tx, realtime_tx);

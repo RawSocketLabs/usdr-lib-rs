@@ -1,10 +1,11 @@
-use sdr::{FreqSample, SlotDataType};
-use comms::{ConnectionType, DisplayInfo};
+use std::collections::{BTreeMap};
+use sdr::{FreqSample, Peaks};
+use comms::{ConnectionType, DisplayInfo, DmrMetadata};
 
 #[derive(Clone, Debug)]
 pub enum Output {
-    Metadata((u32, SlotDataType, u32, u32)),
-    Peaks(Vec<FreqSample>),
+    Metadata(BTreeMap<u32, DmrMetadata>),
+    Peaks(Peaks),
     Display(DisplayInfo),
     Connection(ConnectionType)
 }

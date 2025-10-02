@@ -41,6 +41,7 @@ async fn handle_display_client(mut stream: UnixStream, config: Configuration<Big
                 match msg {
                     Ok(Output::Display(display_info)) => {bincode::encode_into_std_write(External::Display(display_info), &mut stream, config).unwrap();},
                     Ok(Output::Peaks(peaks)) => {bincode::encode_into_std_write(External::Peaks(peaks), &mut stream, config).unwrap();},
+                    Ok(Output::Metadata(metadata)) => {bincode::encode_into_std_write(External::Metadata(metadata), &mut stream, config).unwrap();},
                     _ => {},
                 }
             },

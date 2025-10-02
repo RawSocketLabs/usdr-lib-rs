@@ -1,19 +1,21 @@
-use sdr::{find_peak_in_freq_block, update_average_db, FreqBlock, FreqSample, IQBlock};
+use rustradio::sigmf::parse_meta;
+use sdr::{AverageFreqBlock, FreqBlock, FreqSample, IQBlock, PeakParameters, Peaks};
 use smoothed_z_score::PeaksDetector;
 use crate::context::ProcessParameters;
 
 #[derive(Debug, Default)]
 pub struct CurrentState {
-    pub peaks: Vec<FreqSample>,
+    pub peaks: Peaks,
     pub collected_iq: Vec<IQBlock>,
-    pub average_freq_block: FreqBlock,
+    pub average_freq_block: AverageFreqBlock,
 }
 
 impl CurrentState {
     pub fn clear(&mut self) {
         self.peaks.clear();
         self.collected_iq.clear();
-        self.average_freq_block = FreqBlock::default();
+        self.average_freq_block.block.clear();
+        self.average_freq_block.count = 0;
     }
     pub fn update(&mut self, iq_block: IQBlock, freq_block: FreqBlock) {
         self.collected_iq.push(iq_block);
@@ -23,19 +25,16 @@ impl CurrentState {
     }
 
     fn update_average(&mut self, freq_block: FreqBlock) {
-        if self.average_freq_block.is_empty() {
-            self.average_freq_block = freq_block;
-        } else {
-            update_average_db(self.collected_iq.len() as f32, &mut self.average_freq_block, freq_block);
-        }
+       self.average_freq_block.update(freq_block);
     }
 
     pub fn detect_peaks(&mut self, params: &ProcessParameters) {
-        self.peaks = find_peak_in_freq_block(
-            std::mem::take(&mut self.average_freq_block),
-            params.bandwidth,
-            PeaksDetector::new(params.lag, 5.0, 0.5),
-        );
+        let peak_params = PeakParameters {
+            bandwidth: params.bandwidth,
+            detector: PeaksDetector::new(params.lag, 5.0, 0.5),
+        };
+
+        self.peaks = self.average_freq_block.get_peaks_with_params(peak_params);
     }
 
     pub fn peak_detection_criteria_met(&self, params: &ProcessParameters) -> bool {

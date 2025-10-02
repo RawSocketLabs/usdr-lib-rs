@@ -1,6 +1,6 @@
 use std::time::Duration;
 // VENDOR CRATES
-use sdr::{Device, SdrControl, remove_dc_offset};
+use sdr::{Device, SdrControl};
 
 // LOCAL CRATE
 use crate::device::traits::Sample;
@@ -60,10 +60,10 @@ fn send_freq_and_iq<T: SdrControl>(
         let iq_block_raw = iq_block.clone();
 
         // Remove DC offset to avoid dip at the center frequency
-        remove_dc_offset(&mut iq_block);
-        ctx.apply_window(&mut iq_block);
+        iq_block.remove_dc_offset();
+        iq_block.apply_window(&ctx.window);
 
-        if let Ok(freq_block) = ctx.convert_to_freq_block(iq_block) {
+        if let Ok(freq_block) = iq_block.compute_freq_block(ctx.rate, &*ctx.fft, ctx.freq) {
             if ctx.clients_connected {
                 // TODO: Properly handle errors here...
                 let _ = channels.realtime_tx.send(freq_block.clone());

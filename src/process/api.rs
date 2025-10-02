@@ -1,22 +1,25 @@
+use bincode::impl_borrow_decode;
+use comms::DmrMetadata;
 // THIRD PARTY CRATES
 use rayon::prelude::*;
 // VENDOR CRATES
-use crate::process::{DmrMetadata, ProcessContext, SignalPreProcessor};
-use sdr::{DmrProcessor, FreqSample, IQBlock, freq_shift_iq_block};
+use crate::process::{ScanDmrMetadataExt, ProcessContext, SignalPreProcessor};
+use sdr::{FreqBlock, FreqSample, IQBlock, IQSample, Peaks};
+use sdr::dmr::DmrProcessor;
 
-pub fn process_peaks(mut ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &[FreqSample]) -> Vec<DmrMetadata> {
-    let flat: IQBlock = iq_blocks.into_iter().flatten().collect();
+pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: Peaks) -> Vec<DmrMetadata> {
+    // TODO: There has to be a better way...
+    // let flat = IQBlock::from(iq_blocks.into_iter().flat_map(|block| block.inner()).collect::<Vec<IQSample>>());
+    // let flat: IQBlock = iq_blocks.into_iter().map(|block| block).flatten().collect();
+    let flat: IQBlock = iq_blocks.into_iter().flat_map(|block| block.inner()).collect();
 
-    let blocks: Vec<(&FreqSample, IQBlock)> = peaks.iter().map(|p| (p, flat.clone())).collect();
+    let blocks: Vec<(&FreqSample, IQBlock)> = peaks.iter().map(|peak| (&peak.sample, flat.clone())).collect();
 
     let metadata: Vec<DmrMetadata> = blocks
         .into_par_iter()
         .filter_map(|(peak, mut flat)| {
-            freq_shift_iq_block(
-                &mut flat,
-                ctx.sample_rate,
-                (peak.freq as i32 - ctx.center_freq as i32) as f32,
-            );
+            flat.freq_shift(ctx.sample_rate, (peak.freq as i32 - ctx.center_freq as i32) as f32);
+
             let mut metadata = DmrMetadata::new(peak.freq, peak.db);
 
             let mut signal_pre_processor = SignalPreProcessor::new(flat, ctx.sample_rate);
@@ -27,23 +30,17 @@ pub fn process_peaks(mut ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: &[
                 dmr_processor.push_sample(sample);
             }
 
-            // Find the first matching data burst that contains the needed information
+            let mut recovered_bursts = false;
             dmr_processor.get_bursts().into_iter().for_each(|burst| {
+                recovered_bursts = true;
                 metadata.update_from_burst(burst);
             });
 
-            match metadata.we_care {
-                true => Some(metadata),
-                _ => None
+            if recovered_bursts {
+                return Some(metadata)
             }
-
-            // TODO: Metadata decode happens here as well... can be a decision (via injected context options)
-
-            // Collect the data into a structured output message rather than a specific type...
-
+            None
         }).collect();
-
-    println!("{:#?}", metadata);
 
     metadata
 }

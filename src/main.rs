@@ -6,7 +6,7 @@ mod process;
 
 // THIRD PARTY CRATES
 use clap::Parser;
-use comms::DisplayInfo;
+use comms::{DisplayInfo, DmrMetadata};
 use tokio::sync::{broadcast, mpsc::channel, watch};
 
 // VENDOR CRATES
@@ -34,6 +34,9 @@ async fn main() {
 
     // Structured messages from the program destin to external applications.
     let (out_tx, out_rx) = broadcast::channel::<Output>(512);
+
+    // Dedicated channel to send metadata
+    let (metadata_tx, mut metadata_rx) = channel::<Vec<DmrMetadata>>(32);
 
     // Realtime messages from internal threads to external applications.
     let (realtime_tx, realtime_rx) = watch::channel(FreqBlock::new());
@@ -78,6 +81,11 @@ async fn main() {
                 }
             },
 
+            Some(metadata) = metadata_rx.recv() => {
+                ctx.storage.update_metadata(metadata);
+                out_tx.send(Output::Metadata(ctx.storage.metadata.clone())).unwrap();
+            },
+
             // Handle IQ & Freq blocks being sent from the SDR.
             Some((iq_block, freq_block)) = process_rx.recv(), if ctx.process.is_processing() => {
                 // Add the IQ block and update the average Freq block for the current context.
@@ -110,7 +118,11 @@ async fn main() {
                     // directly.
                     // TODO: This should be cleaner as well.
                     let process_ctx = ProcessContext::new(ctx.scan.current() as f32,ctx.scan.rate() as f32,ProcessType::PreProcess, out_tx.clone());
-                    tokio::task::spawn(async move {process_peaks(process_ctx, iq_blocks, &peaks);});
+                    let metadata_out_tx = metadata_tx.clone();
+                    tokio::task::spawn(async move {
+                        let metadata = process_peaks(process_ctx, iq_blocks, peaks);
+                        metadata_out_tx.send(metadata).await.unwrap();
+                    });
 
                     // Clean up the current context and move on
                     ctx.next();

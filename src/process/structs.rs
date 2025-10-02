@@ -2,13 +2,11 @@ use rustradio::{
     blocks::QuadratureDemod, fir::low_pass_complex, graph::GraphRunner, mtgraph::MTGraph,
     window::WindowType,
 };
-use sdr::{
-    Burst, DataInfo, FeatureSetID, FreqSample, FullLinkControlData, GroupVoiceChannelUser, IQBlock,
-    SyncPattern, TerminatorWithLinkControl, VoiceLinkControlHeader,
-};
-use std::collections::{HashMap, HashSet};
+use sdr::IQBlock;
+use std::collections::{HashMap};
 use std::f32::consts::PI;
-use std::time::SystemTime;
+use comms::{MetadataGroupVoice, Message, DmrMetadata};
+use sdr::dmr::{Burst, DataInfo, FeatureSetID, FullLinkControlData, TerminatorWithLinkControl, VoiceLinkControlHeader};
 
 const CHANNEL_RATE: usize = 125000;
 const DMR_BANDWIDTH: usize = 12500;
@@ -50,7 +48,7 @@ impl SignalPreProcessor {
         let gain = CHANNEL_RATE as f32 / (2.0 * PI * SYMBOL_RATE as f32);
 
         let mut g = MTGraph::new();
-        let (src, prev) = rustradio::blocks::VectorSource::new(data);
+        let (src, prev) = rustradio::blocks::VectorSource::new(data.inner());
 
         let taps = low_pass_complex(rate, DMR_BANDWIDTH as f32, 2000.0, &WindowType::Hamming);
 
@@ -88,82 +86,33 @@ impl SignalPreProcessor {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct DmrMetadata {
-    pub freq: u32,
-    pub rssi: f32,
-    pub observation_time: SystemTime,
-    pub syncs: HashSet<SyncPattern>,
-    pub color_codes: HashSet<u8>,
-    pub messages: HashSet<Message>,
-    pub we_care: bool,
+
+pub trait MetadataGroupVoiceCreator {
+    fn new(fid: FeatureSetID, group: u32, source: u32) -> Self;
 }
 
-#[derive(Hash, PartialEq, Eq, Debug, Clone)]
-pub enum Message {
-    GroupVoice(MetadataGroupVoice),
-    CSBK(MetadataCSBK)
-}
-
-#[derive(Hash, PartialEq, Eq, Debug, Clone)]
-pub enum CSBKMessageType {
-    BaseStationOutboundActivation,
-    UnitToUnitVoiceServiceRequest,
-    UnitToUnitVoiceServiceResponse,
-    NegativeAcknowledgement,
-    Preamble,
-    ChannelTiming,
-}
-#[derive(Hash, PartialEq, Eq, Debug, Clone)]
-pub struct MetadataCSBK {
-    fid: FeatureSetID,
-    mtype: CSBKMessageType,
-    // NOTE: Represents either the target or base station address depending on the type of message.
-    target: u32,
-    source: u32,
-}
-#[derive(Hash, PartialEq, Eq, Debug, Clone)]
-pub struct MetadataGroupVoice {
-    fid: FeatureSetID,
-    group: u32,
-    source: u32,
-}
-
-impl MetadataGroupVoice {
-    fn new(fid: FeatureSetID, group: u32 , source: u32) -> Self {
+impl MetadataGroupVoiceCreator for MetadataGroupVoice {
+    fn new(fid: FeatureSetID, group: u32, source: u32) -> Self {
         Self { fid, group, source }
     }
 }
 
-impl DmrMetadata {
-    pub fn new(freq: u32, rssi: f32) -> Self {
-        Self {
-            freq,
-            rssi,
-            observation_time: SystemTime::now(),
-            syncs: HashSet::new(),
-            color_codes: HashSet::new(),
-            messages: HashSet::new(),
-            we_care: false,
-        }
-    }
+pub trait ScanDmrMetadataExt {
+    fn update_from_burst(&mut self, burst: Burst);
+}
+
+impl ScanDmrMetadataExt for DmrMetadata {
 
 
-
-    pub fn within_band(&self, freq: u32) -> bool {
-        self.freq.abs_diff(freq) < DMR_BANDWIDTH as u32
-    }
-
-    pub fn update_from_burst(&mut self, burst: Burst)  {
-
+    fn update_from_burst(&mut self, burst: Burst) {
         match burst {
             Burst::Data(data_burst) => {
                 self.syncs.insert(data_burst.pattern);
                 self.color_codes.insert(data_burst.slot_type.color_code().value());
+                self.slot_data_types.insert(data_burst.slot_type.data_type());
                 match data_burst.info {
                     DataInfo::VoiceLinkControlHeader(VoiceLinkControlHeader { link_control, .. }) |
                     DataInfo::TerminatorWithLinkControl(TerminatorWithLinkControl { link_control, .. }) => {
-                        self.we_care = true;
                         match link_control.data {
                             FullLinkControlData::GroupVoiceChannelUser(data) => {
                                 self.messages.insert(Message::GroupVoice(MetadataGroupVoice::new(link_control.feature_set_id, data.group_address().value(), data.source_address().value())));
@@ -180,5 +129,4 @@ impl DmrMetadata {
             _ => {}
         }
     }
-
 }
