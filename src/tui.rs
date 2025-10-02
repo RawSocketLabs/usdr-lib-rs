@@ -56,7 +56,7 @@ impl Tui {
             let metadata_area = areas[1];
 
             ui::render_fft_chart(app, frame, fft_area);
-            ui::render_metadata(app, frame, metadata_area);
+            ui::render_metadata_table(app, frame, metadata_area);
         })?;
         Ok(())
     }

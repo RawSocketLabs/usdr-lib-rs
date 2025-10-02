@@ -4,7 +4,8 @@ mod event;
 mod ui;
 mod update;
 
-use comms::{ConnectionType, External, FreqBlock};
+use std::collections::{BTreeMap};
+use comms::{ConnectionType, DmrMetadata, External, FreqBlock};
 use std::os::unix::net::UnixStream;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
@@ -20,6 +21,7 @@ async fn main() {
     let (current_freq_block_tx, current_freq_block_rx) = watch_channel(FreqBlock::new());
     let (peaks_tx, peaks_rx) = channel(1);
     let (center_freq_tx, center_freq_rx) = channel(1);
+    let (metadata_tx, metadata_rx) = channel::<BTreeMap<u32, DmrMetadata>>(1);
 
     std::thread::spawn(move || {
         let backend = CrosstermBackend::new(std::io::stderr());
@@ -32,6 +34,7 @@ async fn main() {
             current_freq_block_rx,
             center_freq_rx,
             peaks_rx,
+            metadata_rx,
             2_000_000,
             445_500_000,
         );
@@ -70,6 +73,9 @@ async fn main() {
                 External::Display(display_info) => {
                     center_freq_tx.send(display_info).await.unwrap();
                 }
+                External::Metadata(metadata) => {
+                    metadata_tx.send(metadata).await.unwrap();
+                },
                 _ => {}
             }
         }

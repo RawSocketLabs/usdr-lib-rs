@@ -1,14 +1,17 @@
-use comms::{DisplayInfo, FreqBlock, FreqSample};
+use std::collections::{BTreeMap, HashMap};
+use comms::{DisplayInfo, DmrMetadata, FreqBlock, FreqSample};
 use tokio::sync::{mpsc, watch};
 
 pub struct App {
     pub current_freq_block_rx: watch::Receiver<FreqBlock>,
     pub display_info_rx: mpsc::Receiver<DisplayInfo>,
+    pub metadata_rx: mpsc::Receiver<BTreeMap<u32, DmrMetadata>>,
     pub sample_rate: u32,
     pub peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
     pub x_bounds: [f64; 2],
     pub y_bounds: [f64; 2],
     pub current_freq_block: FreqBlock,
+    pub current_metadata: BTreeMap<u32, DmrMetadata>,
     pub should_quit: bool,
     pub frequency: u32,
     pub current_peaks: Option<Vec<FreqSample>>,
@@ -19,6 +22,7 @@ impl App {
         current_freq_block_rx: watch::Receiver<FreqBlock>,
         center_freq_rx: mpsc::Receiver<DisplayInfo>,
         peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
+        metadata_rx: mpsc::Receiver<BTreeMap<u32, DmrMetadata>>,
         sample_rate: u32,
         start_freq: u32,
     ) -> Self {
@@ -30,10 +34,12 @@ impl App {
             display_info_rx: center_freq_rx,
             sample_rate,
             peaks_rx,
+            metadata_rx,
             frequency,
             x_bounds: [center_mhz as f64 - half_span_mhz as f64, center_mhz as f64 + half_span_mhz as f64],
             y_bounds: [-60.0, 0.0],
             current_freq_block: Vec::new(),
+            current_metadata: BTreeMap::new(),
             should_quit: false,
             current_peaks: None,
         }

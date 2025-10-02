@@ -37,6 +37,10 @@ pub fn receive_new_data(app: &mut App) {
     if let Ok(results) = app.peaks_rx.try_recv() {
         app.current_peaks = Some(results);
     }
+
+    if let Ok(metadata) = app.metadata_rx.try_recv() {
+        app.current_metadata = metadata;
+    }
     let center_frequency = app.frequency as f64 / 1e6;
     let half_span_mhz = app.sample_rate as f64 / 2.0 / 1e6;
     app.x_bounds = [

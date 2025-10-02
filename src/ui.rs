@@ -1,8 +1,10 @@
+use std::collections::{BTreeSet};
+use comms::Message;
 use ratatui::{style::{Color, Style}, widgets::{Block, Borders, Paragraph}, Frame};
 use ratatui::layout::Rect;
 use ratatui::prelude::{Line, Span};
 use ratatui::symbols::Marker;
-use ratatui::widgets::{Axis, Chart, Dataset, GraphType};
+use ratatui::widgets::{Axis, Cell, Chart, Dataset, GraphType, Row, Table};
 use crate::app::App;
 
 pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
@@ -112,30 +114,36 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
     );
 }
 
-pub fn render_metadata(app: &mut App, frame: &mut Frame, area: Rect) {
-    let mut result_lines = Vec::new();
-    if let Some(ref peaks) = app.current_peaks {
-        // Show center frequency
-        result_lines.push(Line::from(vec![Span::raw(format!(
-            "Center Frequency: {:.3} MHz",
-            app.frequency as f64 / 1e6
-        ))]));
-        // Show peaks
-        if peaks.is_empty() {
-            result_lines.push(Line::from(vec![Span::raw("No peaks detected")]));
-        } else {
-            result_lines.push(Line::from(vec![Span::raw("Peaks:")]));
-            for &sample in peaks {
-                result_lines.push(Line::from(vec![Span::raw(format!(
-                    "  {:.3} MHz: {:.2} dB",
-                    sample.freq as f32 / 1e6, sample.db
-                ))]));
-            }
-        }
-    } else {
-        result_lines.push(Line::from(vec![Span::raw("No scan results yet")]));
-    }
-    let results_block = Paragraph::new(result_lines)
-        .block(Block::default().title("Scan Results").borders(Borders::ALL));
-    frame.render_widget(results_block, area);
+pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
+    let header = ["Freq", "Color Codes", "Slot Data Types", "FIDS", "Talkgroups"]
+        .into_iter()
+        .map(Cell::from)
+        .collect::<Row>()
+        .height(1);
+
+    let rows = app.current_metadata.iter().map(|(freq, metadata)| {
+        Row::new([
+            Cell::from(format!("{}", freq)),
+            Cell::from(format!("{:?}", BTreeSet::from_iter(metadata.color_codes.iter()))),
+            Cell::from(format!("{:?}", BTreeSet::from_iter(metadata.slot_data_types.iter()))),
+            Cell::from(format!("{:?}", BTreeSet::from_iter(metadata.messages.iter().filter_map(|message| {
+                match message {
+                    Message::GroupVoice(m) => Some(format!("{:?}", m.fid)),
+                    _ => None
+                }
+            })))),
+            Cell::from(format!("{:?}", BTreeSet::from_iter(metadata.messages.iter().filter_map(|message| {
+                match message {
+                    Message::GroupVoice(m) => Some(format!("{:?}", m.group)),
+                    _ => None
+                }
+            })))),
+        ])
+    }).collect::<Vec<Row>>();
+
+    let table = Table::new(rows, [10, 20, 100, 50, 50])
+        .header(header)
+        .block(Block::default().borders(Borders::ALL));
+
+    frame.render_widget(table, area);
 }
