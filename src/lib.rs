@@ -1,8 +1,8 @@
+use sdr::{FreqBlock, FreqSample, Peaks};
 use std::collections::{HashSet, BTreeMap};
 use std::time::SystemTime;
-pub use sdr::{FreqSample, FreqBlock};
 use bincode::{Decode, Encode};
-use sdr::{FeatureSetID, SlotDataType, SyncPattern};
+use sdr::dmr::{FeatureSetID, SlotDataType, SyncPattern};
 
 const DMR_BANDWIDTH: usize = 12500;
 
@@ -12,7 +12,7 @@ pub enum External {
     Connection(ConnectionType),
     Display(DisplayInfo),
     Realtime(FreqBlock),
-    Peaks(Vec<FreqSample>),
+    Peaks(Peaks),
     Metadata(BTreeMap<u32, DmrMetadata>),
 }
 
