@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
-use comms::{DisplayInfo, DmrMetadata, FreqBlock, FreqSample};
+use comms::{DisplayInfo, DmrMetadata, FreqBlock, FreqSample, Peaks};
 use tokio::sync::{mpsc, watch};
 
 pub struct App {
@@ -7,21 +7,21 @@ pub struct App {
     pub display_info_rx: mpsc::Receiver<DisplayInfo>,
     pub metadata_rx: mpsc::Receiver<BTreeMap<u32, DmrMetadata>>,
     pub sample_rate: u32,
-    pub peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
+    pub peaks_rx: mpsc::Receiver<Peaks>,
     pub x_bounds: [f64; 2],
     pub y_bounds: [f64; 2],
     pub current_freq_block: FreqBlock,
     pub current_metadata: BTreeMap<u32, DmrMetadata>,
     pub should_quit: bool,
     pub frequency: u32,
-    pub current_peaks: Option<Vec<FreqSample>>,
+    pub current_peaks: Option<Peaks>,
 }
 
 impl App {
     pub fn new(
         current_freq_block_rx: watch::Receiver<FreqBlock>,
         center_freq_rx: mpsc::Receiver<DisplayInfo>,
-        peaks_rx: mpsc::Receiver<Vec<FreqSample>>,
+        peaks_rx: mpsc::Receiver<Peaks>,
         metadata_rx: mpsc::Receiver<BTreeMap<u32, DmrMetadata>>,
         sample_rate: u32,
         start_freq: u32,

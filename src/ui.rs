@@ -26,8 +26,8 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
         Some(peaks) => {
             let mut result = Vec::new();
             for peak in peaks {
-                for i in (peak.db as i32)..=app.y_bounds[1] as i32 {
-                    result.push((peak.freq as f64 / 1e6, i as f64));
+                for i in (peak.sample.db as i32)..=app.y_bounds[1] as i32 {
+                    result.push((peak.sample.freq as f64 / 1e6, i as f64));
                 }
             }
             result
