@@ -1,4 +1,4 @@
-use sdr::{FreqBlock, FreqSample, Peaks};
+pub use sdr::{FreqBlock, Peaks, FreqSample};
 use std::collections::{HashSet, BTreeMap};
 use std::time::SystemTime;
 use bincode::{Decode, Encode};
