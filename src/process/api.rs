@@ -1,17 +1,14 @@
-use bincode::impl_borrow_decode;
 use comms::DmrMetadata;
 // THIRD PARTY CRATES
 use rayon::prelude::*;
 // VENDOR CRATES
 use crate::process::{ScanDmrMetadataExt, ProcessContext, SignalPreProcessor};
-use sdr::{FreqBlock, FreqSample, IQBlock, IQSample, Peaks};
+use sdr::{FreqSample, IQBlock, IQSample, Peaks};
 use sdr::dmr::DmrProcessor;
 
 pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: Peaks) -> Vec<DmrMetadata> {
     // TODO: There has to be a better way...
-    // let flat = IQBlock::from(iq_blocks.into_iter().flat_map(|block| block.inner()).collect::<Vec<IQSample>>());
-    // let flat: IQBlock = iq_blocks.into_iter().map(|block| block).flatten().collect();
-    let flat: IQBlock = iq_blocks.into_iter().flat_map(|block| block.inner()).collect();
+    let flat = IQBlock::from(iq_blocks.into_iter().flat_map(|block| block.inner()).collect::<Vec<IQSample>>());
 
     let blocks: Vec<(&FreqSample, IQBlock)> = peaks.iter().map(|peak| (&peak.sample, flat.clone())).collect();
 
