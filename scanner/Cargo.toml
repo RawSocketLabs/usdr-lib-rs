@@ -1,0 +1,22 @@
+[package]
+name = "sdrscanner"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.41", features = ["derive"] }
+rustfft = "6.4.0"
+rustradio = "0.14.2"
+smoothed_z_score = "0.1.3"
+tokio = { version = "1.46.1", features = ["full"] }
+chrono = "0.4.41"
+rayon = "1.10.0"
+comms = {path = "../sdrscanner-comms"}
+sdr = {path = "../libsdr"}
+
+bincode = "2.0.1"
+
+
+[profile.release]
+opt_level = 3
+lto = true
