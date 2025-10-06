@@ -1,0 +1,83 @@
+mod tui;
+mod app;
+mod event;
+mod ui;
+mod update;
+
+use std::collections::{BTreeMap};
+use comms::{ConnectionType, DmrMetadata, External, FreqBlock};
+use std::os::unix::net::UnixStream;
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
+use tokio::sync::mpsc::channel;
+use tokio::sync::watch::channel as watch_channel;
+use crate::app::App;
+use crate::event::{Event, EventHandler};
+use crate::tui::Tui;
+use crate::update::{receive_new_data, handle_key_event};
+
+#[tokio::main]
+async fn main() {
+    let (current_freq_block_tx, current_freq_block_rx) = watch_channel(FreqBlock::new());
+    let (peaks_tx, peaks_rx) = channel(1);
+    let (center_freq_tx, center_freq_rx) = channel(1);
+    let (metadata_tx, metadata_rx) = channel::<BTreeMap<u32, DmrMetadata>>(1);
+
+    std::thread::spawn(move || {
+        let backend = CrosstermBackend::new(std::io::stderr());
+        let terminal = Terminal::new(backend).unwrap();
+        let events = EventHandler::new(30);
+        let mut tui = Tui::new(terminal, events);
+        tui.enter().unwrap();
+
+        let mut app = App::new(
+            current_freq_block_rx,
+            center_freq_rx,
+            peaks_rx,
+            metadata_rx,
+            2_000_000,
+            445_500_000,
+        );
+
+        while !app.should_quit {
+            let _ = tui.draw(&mut app);
+
+            match tui.events.next().unwrap() {
+                Event::Tick => { receive_new_data(&mut app) }
+                Event::Key(key_event) => handle_key_event(&mut app, key_event),
+            };
+        }
+        tui.exit().unwrap();
+    });
+
+    let config = bincode::config::standard()
+        .with_big_endian()
+        .with_fixed_int_encoding();
+    let mut stream = UnixStream::connect("/tmp/sdrscanner").unwrap();
+    bincode::encode_into_std_write(
+        External::Connection(ConnectionType::Display),
+        &mut stream,
+        config,
+    )
+    .unwrap();
+
+    loop {
+        if let Ok(message) = bincode::decode_from_std_read(&mut stream, config) {
+            match message {
+                External::Realtime(freq_block) => {
+                    current_freq_block_tx.send(freq_block).unwrap();
+                },
+                External::Peaks(peaks) => {
+                    peaks_tx.send(peaks).await.unwrap();
+                },
+                External::Display(display_info) => {
+                    center_freq_tx.send(display_info).await.unwrap();
+                }
+                External::Metadata(metadata) => {
+                    metadata_tx.send(metadata).await.unwrap();
+                },
+                _ => {}
+            }
+        }
+    }
+}

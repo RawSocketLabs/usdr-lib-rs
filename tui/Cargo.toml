@@ -1,0 +1,12 @@
+[package]
+name = "sdrscanner-tui-client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+color-eyre = "0.6.5"
+crossterm = "0.29.0"
+ratatui = "0.29.0"
+tokio = { version = "1.47.1", features = ["sync", "rt", "rt-multi-thread", "macros"] }
+bincode = "2.0.1"
+comms = {path = "../sdrscanner-comms"}
