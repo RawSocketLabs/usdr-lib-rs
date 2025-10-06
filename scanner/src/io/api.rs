@@ -1,7 +1,7 @@
 use std::os::unix::net::{UnixListener, UnixStream};
 use bincode::config::{BigEndian, Configuration, Fixint};
 use sdr::FreqBlock;
-use comms::{ConnectionType, External};
+use shared::{ConnectionType, External};
 use tokio::sync::{mpsc::Sender, watch::Receiver as WatchReceiver, broadcast::Sender as BroadcastSender, broadcast::Receiver as BroadcastReceiver};
 use crate::io::{Input, Output};
 

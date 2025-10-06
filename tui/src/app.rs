@@ -1,5 +1,5 @@
+use shared::{DisplayInfo, DmrMetadata, FreqBlock, FreqSample, Peaks};
 use std::collections::{BTreeMap, HashMap};
-use comms::{DisplayInfo, DmrMetadata, FreqBlock, FreqSample, Peaks};
 use tokio::sync::{mpsc, watch};
 
 pub struct App {
@@ -36,7 +36,10 @@ impl App {
             peaks_rx,
             metadata_rx,
             frequency,
-            x_bounds: [center_mhz as f64 - half_span_mhz as f64, center_mhz as f64 + half_span_mhz as f64],
+            x_bounds: [
+                center_mhz as f64 - half_span_mhz as f64,
+                center_mhz as f64 + half_span_mhz as f64,
+            ],
             y_bounds: [-60.0, 0.0],
             current_freq_block: Vec::new(),
             current_metadata: BTreeMap::new(),

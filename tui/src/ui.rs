@@ -1,11 +1,15 @@
-use std::collections::{BTreeSet};
-use comms::Message;
-use ratatui::{style::{Color, Style}, widgets::{Block, Borders, Paragraph}, Frame};
+use crate::app::App;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Line, Span};
 use ratatui::symbols::Marker;
 use ratatui::widgets::{Axis, Cell, Chart, Dataset, GraphType, Row, Table};
-use crate::app::App;
+use ratatui::{
+    Frame,
+    style::{Color, Style},
+    widgets::{Block, Borders, Paragraph},
+};
+use shared::Message;
+use std::collections::BTreeSet;
 
 pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
     let freq_block_vec = app
@@ -32,9 +36,7 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
             }
             result
         }
-        None => {
-            Vec::new()
-        }
+        None => Vec::new(),
     };
 
     if !peaks_vec.is_empty() {
@@ -115,31 +117,53 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
 }
 
 pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
-    let header = ["Freq", "Color Codes", "Slot Data Types", "FIDS", "Talkgroups"]
-        .into_iter()
-        .map(Cell::from)
-        .collect::<Row>()
-        .height(1);
+    let header = [
+        "Freq",
+        "Color Codes",
+        "Slot Data Types",
+        "FIDS",
+        "Talkgroups",
+    ]
+    .into_iter()
+    .map(Cell::from)
+    .collect::<Row>()
+    .height(1);
 
-    let rows = app.current_metadata.iter().map(|(freq, metadata)| {
-        Row::new([
-            Cell::from(format!("{}", freq)),
-            Cell::from(format!("{:?}", BTreeSet::from_iter(metadata.color_codes.iter()))),
-            Cell::from(format!("{:?}", BTreeSet::from_iter(metadata.slot_data_types.iter()))),
-            Cell::from(format!("{:?}", BTreeSet::from_iter(metadata.messages.iter().filter_map(|message| {
-                match message {
-                    Message::GroupVoice(m) => Some(format!("{:?}", m.fid)),
-                    _ => None
-                }
-            })))),
-            Cell::from(format!("{:?}", BTreeSet::from_iter(metadata.messages.iter().filter_map(|message| {
-                match message {
-                    Message::GroupVoice(m) => Some(format!("{:?}", m.group)),
-                    _ => None
-                }
-            })))),
-        ])
-    }).collect::<Vec<Row>>();
+    let rows = app
+        .current_metadata
+        .iter()
+        .map(|(freq, metadata)| {
+            Row::new([
+                Cell::from(format!("{}", freq)),
+                Cell::from(format!(
+                    "{:?}",
+                    BTreeSet::from_iter(metadata.color_codes.iter())
+                )),
+                Cell::from(format!(
+                    "{:?}",
+                    BTreeSet::from_iter(metadata.slot_data_types.iter())
+                )),
+                Cell::from(format!(
+                    "{:?}",
+                    BTreeSet::from_iter(metadata.messages.iter().filter_map(|message| {
+                        match message {
+                            Message::GroupVoice(m) => Some(format!("{:?}", m.fid)),
+                            _ => None,
+                        }
+                    }))
+                )),
+                Cell::from(format!(
+                    "{:?}",
+                    BTreeSet::from_iter(metadata.messages.iter().filter_map(|message| {
+                        match message {
+                            Message::GroupVoice(m) => Some(format!("{:?}", m.group)),
+                            _ => None,
+                        }
+                    }))
+                )),
+            ])
+        })
+        .collect::<Vec<Row>>();
 
     let table = Table::new(rows, [10, 20, 100, 50, 50])
         .header(header)
@@ -147,3 +171,4 @@ pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
 
     frame.render_widget(table, area);
 }
+

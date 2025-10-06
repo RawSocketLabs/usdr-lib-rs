@@ -1,4 +1,4 @@
-use comms::DmrMetadata;
+use shared::DmrMetadata;
 // THIRD PARTY CRATES
 use rayon::prelude::*;
 // VENDOR CRATES

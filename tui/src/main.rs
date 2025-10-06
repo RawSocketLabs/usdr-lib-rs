@@ -1,20 +1,20 @@
-mod tui;
 mod app;
 mod event;
+mod tui;
 mod ui;
 mod update;
 
-use std::collections::{BTreeMap};
-use comms::{ConnectionType, DmrMetadata, External, FreqBlock};
-use std::os::unix::net::UnixStream;
-use ratatui::backend::CrosstermBackend;
-use ratatui::Terminal;
-use tokio::sync::mpsc::channel;
-use tokio::sync::watch::channel as watch_channel;
 use crate::app::App;
 use crate::event::{Event, EventHandler};
 use crate::tui::Tui;
-use crate::update::{receive_new_data, handle_key_event};
+use crate::update::{handle_key_event, receive_new_data};
+use ratatui::Terminal;
+use ratatui::backend::CrosstermBackend;
+use shared::{ConnectionType, DmrMetadata, External, FreqBlock};
+use std::collections::BTreeMap;
+use std::os::unix::net::UnixStream;
+use tokio::sync::mpsc::channel;
+use tokio::sync::watch::channel as watch_channel;
 
 #[tokio::main]
 async fn main() {
@@ -43,7 +43,7 @@ async fn main() {
             let _ = tui.draw(&mut app);
 
             match tui.events.next().unwrap() {
-                Event::Tick => { receive_new_data(&mut app) }
+                Event::Tick => receive_new_data(&mut app),
                 Event::Key(key_event) => handle_key_event(&mut app, key_event),
             };
         }
@@ -66,16 +66,16 @@ async fn main() {
             match message {
                 External::Realtime(freq_block) => {
                     current_freq_block_tx.send(freq_block).unwrap();
-                },
+                }
                 External::Peaks(peaks) => {
                     peaks_tx.send(peaks).await.unwrap();
-                },
+                }
                 External::Display(display_info) => {
                     center_freq_tx.send(display_info).await.unwrap();
                 }
                 External::Metadata(metadata) => {
                     metadata_tx.send(metadata).await.unwrap();
-                },
+                }
                 _ => {}
             }
         }

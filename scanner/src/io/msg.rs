@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap};
 use sdr::{FreqSample, Peaks};
-use comms::{ConnectionType, DisplayInfo, DmrMetadata};
+use shared::{ConnectionType, DisplayInfo, DmrMetadata};
 
 #[derive(Clone, Debug)]
 pub enum Output {

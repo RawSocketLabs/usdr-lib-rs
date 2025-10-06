@@ -5,7 +5,7 @@ use rustradio::{
 use sdr::IQBlock;
 use std::collections::{HashMap};
 use std::f32::consts::PI;
-use comms::{MetadataGroupVoice, Message, DmrMetadata};
+use shared::{MetadataGroupVoice, Message, DmrMetadata};
 use sdr::dmr::{Burst, DataInfo, FeatureSetID, FullLinkControlData, TerminatorWithLinkControl, VoiceLinkControlHeader};
 
 const CHANNEL_RATE: usize = 125000;

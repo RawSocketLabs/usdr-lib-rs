@@ -1,8 +1,8 @@
 [package]
-name = "comms"
+name = "shared"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 bincode = "2.0.1"
-sdr = {path = "../libsdr"}
+sdr = {path = "../../libsdr"}

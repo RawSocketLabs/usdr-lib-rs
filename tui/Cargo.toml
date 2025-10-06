@@ -1,5 +1,5 @@
 [package]
-name = "sdrscanner-tui-client"
+name = "tui"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,4 +9,4 @@ crossterm = "0.29.0"
 ratatui = "0.29.0"
 tokio = { version = "1.47.1", features = ["sync", "rt", "rt-multi-thread", "macros"] }
 bincode = "2.0.1"
-comms = {path = "../sdrscanner-comms"}
+shared = {path = "../shared"}

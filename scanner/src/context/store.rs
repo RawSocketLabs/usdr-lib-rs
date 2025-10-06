@@ -3,7 +3,7 @@ use std::collections::{BTreeMap};
 
 // THIRD PARTY
 use chrono::{DateTime, Utc};
-use comms::DmrMetadata;
+use shared::DmrMetadata;
 // VENDOR CRATES
 use sdr::FreqSample;
 

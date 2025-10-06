@@ -6,7 +6,7 @@ mod process;
 
 // THIRD PARTY CRATES
 use clap::Parser;
-use comms::{DisplayInfo, DmrMetadata};
+use shared::{DisplayInfo, DmrMetadata};
 use tokio::sync::{broadcast, mpsc::channel, watch};
 
 // VENDOR CRATES
