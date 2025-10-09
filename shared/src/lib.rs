@@ -57,10 +57,10 @@ pub enum CSBKMessageType {
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Encode, Decode, Ord, PartialOrd)]
 pub struct MetadataCSBK {
     pub fid: FeatureSetID,
-    pub mtype: CSBKMessageType,
-    // NOTE: Represents either the target or base station address depending on the type of message.
-    pub target: u32,
-    pub source: u32,
+    // pub mtype: CSBKMessageType,
+    // // NOTE: Represents either the target or base station address depending on the type of message.
+    // pub target: u32,
+    // pub source: u32,
 }
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Encode, Decode, Ord, PartialOrd)]
 pub struct MetadataGroupVoice {

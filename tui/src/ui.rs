@@ -123,6 +123,7 @@ pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
         "Slot Data Types",
         "FIDS",
         "Talkgroups",
+        "Sources",
     ]
     .into_iter()
     .map(Cell::from)
@@ -148,6 +149,7 @@ pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
                     BTreeSet::from_iter(metadata.messages.iter().filter_map(|message| {
                         match message {
                             Message::GroupVoice(m) => Some(format!("{:?}", m.fid)),
+                            Message::CSBK(m) => Some(format!("{:?}", m.fid)),
                             _ => None,
                         }
                     }))
@@ -161,11 +163,20 @@ pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
                         }
                     }))
                 )),
+                Cell::from(format!(
+                    "{:?}",
+                    BTreeSet::from_iter(metadata.messages.iter().filter_map(|message| {
+                        match message {
+                            Message::GroupVoice(m) => Some(format!("{:?}", m.source)),
+                            _ => None,
+                        }
+                    }))
+                )),
             ])
         })
         .collect::<Vec<Row>>();
 
-    let table = Table::new(rows, [10, 20, 100, 50, 50])
+    let table = Table::new(rows, [10, 20, 100, 50, 50, 50])
         .header(header)
         .block(Block::default().borders(Borders::ALL));
 

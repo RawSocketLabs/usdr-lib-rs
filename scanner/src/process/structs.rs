@@ -5,7 +5,7 @@ use rustradio::{
 use sdr::IQBlock;
 use std::collections::{HashMap};
 use std::f32::consts::PI;
-use shared::{MetadataGroupVoice, Message, DmrMetadata};
+use shared::{MetadataGroupVoice, Message, DmrMetadata, MetadataCSBK};
 use sdr::dmr::{Burst, DataInfo, FeatureSetID, FullLinkControlData, TerminatorWithLinkControl, VoiceLinkControlHeader};
 
 const CHANNEL_RATE: usize = 125000;
@@ -119,6 +119,9 @@ impl ScanDmrMetadataExt for DmrMetadata {
                             }
                             _ => {}
                         }
+                    }
+                    DataInfo::ControlSignalingBlock(csb) => {
+                        self.messages.insert(Message::CSBK(MetadataCSBK {fid: csb.feature_set_id}));
                     }
                     _ => {}
                 }
