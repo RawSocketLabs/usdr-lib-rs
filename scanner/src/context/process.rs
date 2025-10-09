@@ -16,6 +16,7 @@ pub struct ProcessParameters {
     pub num_required_for_average: usize,
     pub num_required_for_metadata: usize,
     freq_ranges_to_ignore: Vec<FreqRange>,
+    is_file: bool,
 }
 
 impl ProcessParameters {
@@ -41,6 +42,7 @@ impl ProcessParameters {
                         .collect()
                 })
                 .unwrap_or_default(),
+            is_file: args.file.is_some(),
         }
     }
 
@@ -49,7 +51,9 @@ impl ProcessParameters {
     }
 
     pub fn stop(&mut self) {
-        self.process = false;
+        if !self.is_file {
+            self.process = false;
+        }
     }
 
     pub fn start(&mut self) {

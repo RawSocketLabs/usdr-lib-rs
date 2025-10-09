@@ -28,6 +28,15 @@ pub struct DisplayInfo {
     pub rate: usize,
 }
 
+impl DisplayInfo {
+    pub fn new(center_freq: usize, rate: u32) -> Self {
+        Self {
+            center_freq,
+            rate: rate as usize,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Encode, Decode, PartialEq)]
 pub struct DmrMetadata {
     pub freq: u32,

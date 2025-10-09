@@ -4,7 +4,7 @@ use clap::Parser;
 #[clap(name = "sdrscanner", about = "Scan a frequency range for signal peaks")]
 pub struct Cli {
     /// Range of frequencies to accept
-    #[clap(long, value_parser, num_args=1.., value_delimiter=' ', default_value="400000000,520000000")]
+    #[clap(long, value_parser, num_args=1.., value_delimiter=' ', default_value="400000000,520000000", conflicts_with = "file")]
     pub ranges: Vec<String>,
 
     /// Delay between switching frequencies in milliseconds
@@ -27,12 +27,18 @@ pub struct Cli {
     #[clap(long, action, requires = "file_source")]
     pub raw: bool,
 
+    #[clap(long, action, requires = "file_source")]
+    pub no_throttle: bool,
+
+    #[clap(long, conflicts_with = "ranges", default_value = "100000000")]
+    pub center_frequency: u32,
+
     /// Bandwidth window for detecting peaks
     #[clap(long, default_value = "12500")]
     pub bandwidth: u32,
 
     /// Scan Mode
-    #[clap(long, default_value = "SweepThenProcess")]
+    #[clap(long, default_value = "SweepAndProcess")]
     pub scan_mode: String,
 
     /// Number of blocks required to determine average db

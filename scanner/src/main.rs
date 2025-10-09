@@ -57,7 +57,7 @@ async fn main() {
     );
 
     // Dedicated OS thread to handle external applications (in/out)
-    io::start(in_tx, out_tx.clone(), realtime_rx).await;
+    io::start(in_tx, out_tx.clone(), realtime_rx, DisplayInfo::new(ctx.scan.current(), ctx.scan.rate())).await;
     ////
 
     // Main Loop
@@ -71,7 +71,7 @@ async fn main() {
                     Input::DeviceFreqUpdated => {
                         while process_rx.try_recv().is_ok() {}
                             // TODO: Figure out what types should be returned from each thing...
-                        out_tx.send(Output::Display(DisplayInfo {center_freq: ctx.scan.current(), rate: ctx.scan.rate() as usize})).unwrap();
+                        out_tx.send(Output::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate()))).unwrap();
                         ctx.process.start()
                     },
                     Input::ClientAtLeastOneConnected => {
@@ -117,7 +117,7 @@ async fn main() {
                     // time. It handles reporting sending its output to the appropriate channel
                     // directly.
                     // TODO: This should be cleaner as well.
-                    let process_ctx = ProcessContext::new(ctx.scan.current() as f32,ctx.scan.rate() as f32,ProcessType::PreProcess, out_tx.clone());
+                    let process_ctx = ProcessContext::new(ctx.scan.current() as u32, ctx.scan.rate(), ProcessType::PreProcess, out_tx.clone());
                     let metadata_out_tx = metadata_tx.clone();
                     tokio::task::spawn(async move {
                         let metadata = process_peaks(process_ctx, iq_blocks, peaks);

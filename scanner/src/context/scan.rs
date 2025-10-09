@@ -1,9 +1,9 @@
 use crate::cli::Cli;
 use crate::device::DevMsg;
+use sdr::FreqRange;
 use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
-use sdr::FreqRange;
 use tokio::sync::mpsc::Sender;
 
 pub struct ScanContext {
@@ -15,7 +15,7 @@ impl ScanContext {
     pub fn new(mode: ScanMode, args: &Cli, dev_tx: Sender<DevMsg>) -> Result<Self, ()> {
         Ok(Self {
             mode,
-            manager: ScanManager::new(args, dev_tx)?
+            manager: ScanManager::new(args, dev_tx)?,
         })
     }
 
@@ -36,7 +36,6 @@ impl ScanContext {
     }
 }
 
-
 pub(crate) struct ScanManager {
     idx: usize,
     pub(crate) rate: u32,
@@ -44,30 +43,46 @@ pub(crate) struct ScanManager {
     step_size: usize,
     pub(crate) cycles_completed: usize,
     sleep_duration: Duration,
-    ranges: Vec<FreqRange>,
+    range_type: FreqRangeType,
     dev_tx: Sender<DevMsg>,
+}
+
+pub enum FreqRangeType {
+    Fixed(usize),
+    Ranges(Vec<FreqRange>),
 }
 
 impl ScanManager {
     pub(crate) fn new(args: &Cli, dev_tx: Sender<DevMsg>) -> Result<Self, ()> {
-        let ranges: Vec<FreqRange> = args
-            .ranges
-            .iter()
-            .map(|s| FreqRange::from_str(s).unwrap())
-            .collect();
-        match args.ranges.len() {
-            0 => Err(()),
-            _ => Ok(Self {
-                idx: 0,
-                rate: args.rate,
-                step_size: (args.rate as usize) / 4,
-                sleep_duration: Duration::from_millis(args.sleep_ms),
-                cycles_completed: 0,
-                current: ranges[0].start,
-                ranges,
-                dev_tx,
-            }),
-        }
+        let (range_type, current) = match args.file.is_some() {
+            true => (
+                FreqRangeType::Fixed(args.center_frequency as usize),
+                args.center_frequency as usize,
+            ),
+            false => {
+                let ranges: Vec<FreqRange> = args
+                    .ranges
+                    .iter()
+                    .map(|s| FreqRange::from_str(s).unwrap())
+                    .collect();
+                if ranges.len() == 0 {
+                    return Err(());
+                }
+                let current = ranges.first().unwrap().start;
+                (FreqRangeType::Ranges(ranges), current)
+            }
+        };
+
+        Ok(Self {
+            idx: 0,
+            rate: args.rate,
+            step_size: (args.rate as usize) / 4,
+            sleep_duration: Duration::from_millis(args.sleep_ms),
+            cycles_completed: 0,
+            current,
+            range_type,
+            dev_tx,
+        })
     }
 
     pub fn current(&self) -> usize {
@@ -75,25 +90,31 @@ impl ScanManager {
     }
 
     pub(crate) fn next(&mut self) {
-        // Increment the current center frequency
-        if self.ranges[self.idx].stop >= self.current + self.step_size {
-            self.current += self.step_size;
-        } else {
-            self.idx = (self.idx + 1) % self.ranges.len();
-            self.current = self.ranges[self.idx].start;
-            if self.idx == 0 {
-                self.cycles_completed += 1;
+        match &self.range_type {
+            FreqRangeType::Fixed(_) => {
+                self.cycles_completed += 1
+            },
+            FreqRangeType::Ranges(ranges) => {
+                // Increment the current center frequency
+                if ranges[self.idx].stop >= self.current + self.step_size {
+                    self.current += self.step_size;
+                } else {
+                    self.idx = (self.idx + 1) % ranges.len();
+                    self.current = ranges[self.idx].start;
+                    if self.idx == 0 {
+                        self.cycles_completed += 1;
+                    }
+                }
+
+                sleep(self.sleep_duration);
+
+                // Send a message to the device
+                // TODO: Handle errors properly
+                self.dev_tx
+                    .try_send(DevMsg::ChangeFreq(self.current))
+                    .unwrap();
             }
         }
-
-        sleep(self.sleep_duration);
-        
-        // Send a message to the device
-        // TODO: Handle errors properly
-        self.dev_tx
-            .try_send(DevMsg::ChangeFreq(self.current))
-            .unwrap();
-
     }
 }
 

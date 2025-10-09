@@ -37,7 +37,7 @@ pub fn start(
         Duration::from_millis(args.sleep_ms),
     );
     let channels = DevChannels::new(dev_rx, input_tx, process_tx, realtime_tx);
-    let (file, rate, raw) = (args.file.clone(), args.rate, args.raw);
+    let (file, rate, raw, throttle) = (args.file.clone(), args.rate, args.raw, !args.no_throttle);
 
     thread::spawn(move || match file {
         None => Device::<Rtl>::new(rate)
@@ -45,9 +45,9 @@ pub fn start(
             .sample(channels, ctx),
         Some(path) => {
             if raw {
-                Device::<RawFile>::new(path, rate).sample(channels, ctx)
+                Device::<RawFile>::new(path, rate, throttle).sample(channels, ctx)
             } else {
-                Device::<WavFile>::new(path).sample(channels, ctx)
+                Device::<WavFile>::new(path, throttle).sample(channels, ctx)
             }
         }
     });

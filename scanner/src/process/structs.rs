@@ -43,14 +43,14 @@ impl SignalPreProcessor {
     /// Creates a new DmrProcessor with the given IQ data.  This will construct a rustradio flowgraph for transforming IQ data into a format suitable for DMR processing.
     ///
     /// It is expected that the signal of interest is already centered within the input IQBlock.
-    pub fn new(data: IQBlock, rate: f32) -> Self {
+    pub fn new(data: IQBlock, rate: u32) -> Self {
         let decimation_factor = rate as usize / CHANNEL_RATE;
         let gain = CHANNEL_RATE as f32 / (2.0 * PI * SYMBOL_RATE as f32);
 
         let mut g = MTGraph::new();
         let (src, prev) = rustradio::blocks::VectorSource::new(data.inner());
 
-        let taps = low_pass_complex(rate, DMR_BANDWIDTH as f32, 2000.0, &WindowType::Hamming);
+        let taps = low_pass_complex(rate as f32, DMR_BANDWIDTH as f32, 2000.0, &WindowType::Hamming);
 
         let (lowpass, prev) = rustradio::fir::FirFilter::builder(&taps)
             .deci(decimation_factor)
