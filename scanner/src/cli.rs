@@ -41,13 +41,13 @@ pub struct Cli {
     #[clap(long, default_value = "SweepAndProcess")]
     pub scan_mode: String,
 
-    /// Number of blocks required to determine average db
-    #[clap(long)]
-    pub blocks_for_average: Option<usize>,
+    /// Time to observe signal for baseline averaging (milliseconds)
+    #[clap(long, default_value = "20")]
+    pub observation_time_ms: u32,
 
-    /// Number of blocks required for processing metadata
-    #[clap(long)]
-    pub blocks_for_metadata: Option<usize>,
+    /// Time to inspect signal for metadata acquisition (milliseconds)
+    #[clap(long, default_value = "100")]
+    pub metadata_time_ms: u32,
 
     /// Number of blocks required for processing metadata
     #[clap(long)]

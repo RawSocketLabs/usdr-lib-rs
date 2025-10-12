@@ -3,9 +3,17 @@ use std::str::FromStr;
 use sdr::dmr::BITS_PER_BURST;
 use crate::cli::Cli;
 use crate::process::AUDIO_RATE;
+use tracing::info;
 
 pub(crate) const DEFAULT_SCAN_CYCLES_REQUIRED_FOR_METADATA: usize = 1;
-pub(crate) const DEFAULT_BLOCKS_REQUIRED_FOR_AVERAGE: usize = 10;
+pub(crate) const DEFAULT_OBSERVATION_TIME_MS: u32 = 20;
+pub(crate) const DEFAULT_METADATA_TIME_MS: u32 = 100;
+
+/// Convert milliseconds to number of FFT blocks based on sample rate and FFT size
+fn ms_to_blocks(time_ms: u32, sample_rate: u32, fft_size: usize) -> usize {
+    let blocks = (time_ms as f32 / 1000.0 * sample_rate as f32) / fft_size as f32;
+    blocks.ceil() as usize
+}
 
 pub struct ProcessParameters {
     process: bool,
@@ -21,7 +29,25 @@ pub struct ProcessParameters {
 
 impl ProcessParameters {
     pub fn new(args: &Cli) -> Self {
+        // Calculate block duration in milliseconds
+        let block_duration_ms = (args.fft_size as f32 / args.rate as f32) * 1000.0;
+        
+        // Convert millisecond times to block counts
+        let observation_blocks = ms_to_blocks(args.observation_time_ms, args.rate, args.fft_size);
+        let metadata_blocks = ms_to_blocks(args.metadata_time_ms, args.rate, args.fft_size);
+        
+        // Calculate minimum blocks required for DMR burst recovery
         let min_blocks_required_for_burst_recovery = (BITS_PER_BURST * 2 * SAMPLES_PER_SYMBOL_4800) as f32 / (args.fft_size as f32 * (AUDIO_RATE as f32 / args.rate as f32));
+        
+        // Use the larger of requested metadata time or minimum DMR requirement
+        let final_metadata_blocks = metadata_blocks.max(min_blocks_required_for_burst_recovery as usize);
+        
+        // Log the conversions for transparency
+        info!("Block duration: {:.3}ms", block_duration_ms);
+        info!("Observation time: {}ms = {} blocks", args.observation_time_ms, observation_blocks);
+        info!("Metadata time: {}ms = {} blocks (min DMR: {} blocks)", 
+              args.metadata_time_ms, final_metadata_blocks, min_blocks_required_for_burst_recovery as usize);
+        
         Self {
             process: true,
             fft_size: args.fft_size,
@@ -30,8 +56,8 @@ impl ProcessParameters {
             scan_cycles_required: args
                 .scans_before_processing
                 .unwrap_or(DEFAULT_SCAN_CYCLES_REQUIRED_FOR_METADATA),
-            num_required_for_average: args.blocks_for_average.unwrap_or(DEFAULT_BLOCKS_REQUIRED_FOR_AVERAGE),
-            num_required_for_metadata: args.blocks_for_metadata.unwrap_or(min_blocks_required_for_burst_recovery as usize),
+            num_required_for_average: observation_blocks,
+            num_required_for_metadata: final_metadata_blocks,
             freq_ranges_to_ignore: args
                 .freq_ranges_to_ignore
                 .clone()
