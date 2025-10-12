@@ -53,30 +53,56 @@ async fn main() {
     let config = bincode::config::standard()
         .with_big_endian()
         .with_fixed_int_encoding();
+    // eprintln!("TUI connecting to scanner...");
     let mut stream = UnixStream::connect("/tmp/sdrscanner").unwrap();
-    bincode::encode_into_std_write(
+    // eprintln!("TUI connected to scanner");
+    // eprintln!("TUI sending connection message...");
+    let serialized = bincode::encode_to_vec(
         External::Connection(ConnectionType::Display),
-        &mut stream,
         config,
-    )
-    .unwrap();
+    ).unwrap();
+    
+    // Write length prefix
+    use std::io::Write;
+    stream.write_all(&(serialized.len() as u32).to_be_bytes()).unwrap();
+    // Write data
+    stream.write_all(&serialized).unwrap();
+    stream.flush().unwrap();
+    // eprintln!("TUI sent connection message, starting message loop...");
 
     loop {
-        if let Ok(message) = bincode::decode_from_std_read(&mut stream, config) {
-            match message {
-                External::Realtime(freq_block) => {
-                    current_freq_block_tx.send(freq_block).unwrap();
+        // Read length prefix
+        use std::io::Read;
+        let mut len_buf = [0u8; 4];
+        if stream.read_exact(&mut len_buf).is_ok() {
+            let len = u32::from_be_bytes(len_buf) as usize;
+            let mut buffer = vec![0u8; len];
+            if stream.read_exact(&mut buffer).is_ok() {
+                if let Ok((message, _)) = bincode::decode_from_slice(&buffer, config) {
+                    // eprintln!("TUI received message: {:?}", message);
+                    match message {
+                        External::Realtime(freq_block) => {
+                            // eprintln!("TUI sending realtime data to display");
+                            current_freq_block_tx.send(freq_block).unwrap();
+                        }
+                        External::Peaks(peaks) => {
+                            peaks_tx.try_send(peaks).unwrap_or_else(|_| {
+                                // eprintln!("Failed to send peaks to TUI - channel full");
+                            });
+                        }
+                        External::Display(display_info) => {
+                            center_freq_tx.try_send(display_info).unwrap_or_else(|_| {
+                                // eprintln!("Failed to send display info to TUI - channel full");
+                            });
+                        }
+                        External::Metadata(metadata) => {
+                            metadata_tx.try_send(metadata).unwrap_or_else(|_| {
+                                // eprintln!("Failed to send metadata to TUI - channel full");
+                            });
+                        }
+                        _ => {}
+                    }
                 }
-                External::Peaks(peaks) => {
-                    peaks_tx.send(peaks).await.unwrap();
-                }
-                External::Display(display_info) => {
-                    center_freq_tx.send(display_info).await.unwrap();
-                }
-                External::Metadata(metadata) => {
-                    metadata_tx.send(metadata).await.unwrap();
-                }
-                _ => {}
             }
         }
     }

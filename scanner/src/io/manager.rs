@@ -1,5 +1,5 @@
 use tokio::sync::{mpsc::Sender, broadcast, watch};
-use std::os::unix::net::UnixListener;
+use tokio::net::UnixListener;
 use std::sync::{Arc, atomic::AtomicUsize};
 use shared::ConnectionType;
 use crate::io::{Internal, handle_client};
@@ -36,26 +36,31 @@ impl IOManager {
         internal_tx: Sender<Internal>,
         initial_display_info: shared::External,
     ) {
+        eprintln!("IO manager start_listener called");
         let _ = std::fs::remove_file("/tmp/sdrscanner");
+        eprintln!("Removed old socket file");
         let listener = UnixListener::bind("/tmp/sdrscanner")
             .expect("Failed to bind Unix socket");
-        
-        let listener = tokio::net::UnixListener::from_std(listener)
-            .expect("Failed to create async listener");
+        eprintln!("Unix socket listener bound to /tmp/sdrscanner");
 
         let mut next_client_id = 1u64;
 
         loop {
+            // eprintln!("Waiting for client connection...");
             match listener.accept().await {
-                Ok((stream, _)) => {
+                Ok((mut stream, _)) => {
                     let client_id = next_client_id;
                     next_client_id += 1;
 
                     // For now, assume all clients are Display clients
                     let connection_type = ConnectionType::Display;
 
+                    // Clone client_count before incrementing to avoid move issues
+                    let client_count = self.client_count.clone();
+                    
                     // Increment client count
-                    self.client_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let new_count = client_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                    eprintln!("Client count incremented to {}", new_count);
 
                     // Clone channels for this client
                     let internal_tx = internal_tx.clone();
@@ -66,9 +71,19 @@ impl IOManager {
                     
                     // Spawn client handler directly
                     tokio::spawn(async move {
-                        // Send initial display info to new client via broadcast
-                        let _ = external_tx.send(initial_display_info);
-                        handle_client(stream, client_id, connection_type, external_rx, realtime_rx, internal_tx).await;
+                        eprintln!("Client {} connected (type: {:?})", client_id, connection_type);
+                        
+                        // Send initial display info directly to the client
+                        use crate::io::client_handler::send_to_client;
+                        if let Err(e) = send_to_client(&mut stream, &initial_display_info).await {
+                            eprintln!("Failed to send initial display info to client {}: {}", client_id, e);
+                            let new_count = client_count.fetch_sub(1, std::sync::atomic::Ordering::Relaxed) - 1;
+                            eprintln!("Client {} disconnected during initial send, client count decremented to {}", client_id, new_count);
+                            return;
+                        }
+                        eprintln!("Sent initial display info to client {}", client_id);
+                        
+                        handle_client(stream, client_id, connection_type, external_rx, realtime_rx, internal_tx, client_count).await;
                     });
                 }
                 Err(e) => {

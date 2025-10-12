@@ -6,7 +6,7 @@ use sdr::dmr::{FeatureSetID, SlotDataType, SyncPattern};
 
 const DMR_BANDWIDTH: usize = 12500;
 
-#[derive(Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone, Debug)]
 pub enum External {
     Disconnect,
     Connection(ConnectionType),

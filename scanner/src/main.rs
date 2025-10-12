@@ -58,7 +58,9 @@ async fn main() {
 
     // Start IO manager
     let initial_display_info = External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate()));
+    eprintln!("Starting IO manager...");
     io_manager.start(external_tx.clone(), realtime_rx, internal_tx.clone(), initial_display_info).await;
+    eprintln!("IO manager started");
 
     // Main Loop with proper yielding
     loop {

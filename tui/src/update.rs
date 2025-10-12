@@ -33,9 +33,14 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
 }
 
 pub fn receive_new_data(app: &mut App) {
-    app.current_freq_block = app.current_freq_block_rx.borrow().to_vec();
+    let new_freq_block = app.current_freq_block_rx.borrow().to_vec();
+    if new_freq_block.len() != app.current_freq_block.len() || !new_freq_block.is_empty() {
+        // eprintln!("TUI received new freq_block with {} samples", new_freq_block.len());
+        app.current_freq_block = new_freq_block;
+    }
 
     if let Ok(display_info) = app.display_info_rx.try_recv() {
+        // eprintln!("TUI received display info: center_freq={}, rate={}", display_info.center_freq, display_info.rate);
         app.frequency = display_info.center_freq as u32;
         app.sample_rate = display_info.rate as u32;
     }
