@@ -2,12 +2,14 @@ mod cli;
 mod context;
 mod device;
 mod io;
+mod logging;
 mod process;
 
 // THIRD PARTY CRATES
 use clap::Parser;
 use shared::{DisplayInfo, External};
 use tokio::sync::{broadcast, mpsc::channel};
+use tracing::{info, debug, trace};
 
 // VENDOR CRATES
 // LOCAL CRATES
@@ -17,9 +19,21 @@ use crate::process::{ProcessContext, ProcessType, process_peaks};
 use crate::{cli::Cli, context::Context, device::DevMsg};
 
 #[tokio::main]
+#[tracing::instrument]
 async fn main() {
     // Parse command line arguments
     let args = Cli::parse();
+
+    // Initialize logging first
+    if let Err(e) = logging::init_logging(&args) {
+        eprintln!("Failed to initialize logging: {}", e);
+        std::process::exit(1);
+    }
+
+    info!("Starting SDR Scanner");
+    info!("Configuration: rate={}, fft_size={}, scan_mode={}", 
+          args.rate, args.fft_size, args.scan_mode);
+    info!("Frequency ranges: {:?}", args.ranges);
 
     //// Inter-Thread Communication Channels
     // Messages for the device to action.
@@ -39,6 +53,7 @@ async fn main() {
 
     // Initialize variables into the top-level context object.
     let mut ctx = Context::new(&args, dev_tx.clone()).unwrap();
+    info!("Context initialized successfully");
 
     // Create IO manager
     let io_manager = IOManager::new();
@@ -46,6 +61,7 @@ async fn main() {
 
     //// START DEDICATED THREADS
     // Dedicated OS thread to handle the SDR device.
+    info!("Starting device thread");
     device::start(
         &args,
         ctx.scan.current(),
@@ -58,17 +74,19 @@ async fn main() {
 
     // Start IO manager
     let initial_display_info = External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate()));
-    eprintln!("Starting IO manager...");
+    info!("Starting IO manager...");
     io_manager.start(external_tx.clone(), realtime_rx, internal_tx.clone(), initial_display_info).await;
-    eprintln!("IO manager started");
+    info!("IO manager started");
 
     // Main Loop with proper yielding
+    info!("Entering main processing loop");
     loop {
         tokio::select! {
             // Handle messages from clients (fast, non-blocking)
             Some(msg) = internal_rx.recv() => {
                 match msg {
                     Internal::DeviceFreqUpdated => {
+                        info!("Device frequency updated to {}", ctx.scan.current());
                         // Clear pending process messages
                         while process_rx.try_recv().is_ok() {}
                         
@@ -77,6 +95,7 @@ async fn main() {
                         ctx.process.start()
                     },
                     Internal::BlockMetadata(block_metadata) => {
+                        trace!("Received block metadata with {} entries", block_metadata.len());
                         ctx.storage.update_metadata(block_metadata);
                         let metadata_msg = External::Metadata(ctx.storage.metadata.clone());
                         let _ = external_tx.send(metadata_msg);

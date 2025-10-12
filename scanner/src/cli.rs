@@ -57,4 +57,16 @@ pub struct Cli {
     #[clap(long)]
     pub freq_ranges_to_ignore: Option<Vec<String>>,
 
+    /// Log level (trace, debug, info, warn, error)
+    #[clap(long, default_value = "info")]
+    pub log_level: String,
+
+    /// Directory for log files
+    #[clap(long, default_value = "./logs")]
+    pub log_dir: String,
+
+    /// Enable file logging (console logging always enabled)
+    #[clap(long, action)]
+    pub log_to_file: bool,
+
 }

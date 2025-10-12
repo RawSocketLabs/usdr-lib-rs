@@ -4,11 +4,12 @@ use tokio::io::{AsyncWriteExt, AsyncReadExt};
 use tokio::time::Duration;
 use shared::{External, ConnectionType, FreqBlock};
 use crate::io::Internal;
+use tracing::{info, error, warn, debug, trace};
 
 // Helper function to decrement client count and log disconnection
 fn handle_client_disconnect(client_id: u64, client_count: &std::sync::Arc<std::sync::atomic::AtomicUsize>) {
     let new_count = client_count.fetch_sub(1, std::sync::atomic::Ordering::Relaxed) - 1;
-    eprintln!("Client {} disconnected, client count decremented to {}", client_id, new_count);
+    info!("Client {} disconnected, client count decremented to {}", client_id, new_count);
 }
 
 pub async fn handle_client(
@@ -30,11 +31,11 @@ pub async fn handle_client(
                         // Handle External messages from clients
                         match msg {
                             shared::External::Connection(conn_type) => {
-                                // eprintln!("Client {} sent connection type: {:?}", client_id, conn_type);
+                                debug!("Client {} sent connection type: {:?}", client_id, conn_type);
                                 // Could update connection type here if needed
                             }
                             _ => {
-                                eprintln!("Client {} sent unexpected message: {:?}", client_id, msg);
+                                warn!("Client {} sent unexpected message: {:?}", client_id, msg);
                             }
                         }
                     }
@@ -49,7 +50,7 @@ pub async fn handle_client(
                            e.to_string().contains("End of file") {
                             handle_client_disconnect(client_id, &client_count);
                         } else {
-                            eprintln!("Client {} error: {}", client_id, e);
+                            error!("Client {} error: {}", client_id, e);
                             handle_client_disconnect(client_id, &client_count);
                         }
                         return;
@@ -61,9 +62,9 @@ pub async fn handle_client(
             _ = realtime_rx.changed(), if connection_type == ConnectionType::Display => {
                 let freq_block = realtime_rx.borrow().clone();
                 let realtime_msg = External::Realtime(freq_block);
-                // eprintln!("Client {} received realtime data", client_id);
+                trace!("Client {} received realtime data", client_id);
                 if let Err(e) = send_to_client(&mut stream, &realtime_msg).await {
-                    eprintln!("Failed to send realtime data to client {}: {}", client_id, e);
+                    error!("Failed to send realtime data to client {}: {}", client_id, e);
                     handle_client_disconnect(client_id, &client_count);
                     return;
                 }
@@ -73,15 +74,15 @@ pub async fn handle_client(
             result = external_rx.recv() => {
                 match result {
                     Ok(msg) => {
-                        // eprintln!("Client {} received external message: {:?}", client_id, msg);
+                        trace!("Client {} received external message: {:?}", client_id, msg);
                         if let Err(e) = send_to_client(&mut stream, &msg).await {
-                            eprintln!("Failed to send to client {}: {}", client_id, e);
+                            error!("Failed to send to client {}: {}", client_id, e);
                             handle_client_disconnect(client_id, &client_count);
                             return;
                         }
                     }
                     Err(broadcast::error::RecvError::Lagged(n)) => {
-                        eprintln!("Client {} lagged by {} messages", client_id, n);
+                        warn!("Client {} lagged by {} messages", client_id, n);
                         continue;
                     }
                     Err(broadcast::error::RecvError::Closed) => {
@@ -124,7 +125,7 @@ pub async fn send_to_client(stream: &mut UnixStream, msg: &External) -> Result<(
         .with_fixed_int_encoding();
     
     let serialized = bincode::encode_to_vec(msg, config)?;
-    // println!("Sending to client message: {:?}", msg);
+    trace!("Sending to client message: {:?}", msg);
     
     // Write length prefix
     stream.write_u32(serialized.len() as u32).await?;

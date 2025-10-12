@@ -7,6 +7,7 @@ use tokio::sync::{
     mpsc::{Receiver, Sender},
     watch,
 };
+use tracing::info;
 
 // VENDOR CRATES
 use sdr::{Device, FreqBlock, Hann, IQBlock, Window};
@@ -30,6 +31,7 @@ pub fn start(
     realtime_tx: watch::Sender<FreqBlock>,
     client_count: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) {
+    info!("Starting device thread with frequency: {} Hz", freq);
     let ctx = SampleContext::new(
         args.rate,
         freq,
@@ -41,10 +43,14 @@ pub fn start(
     let (file, rate, raw, throttle) = (args.file.clone(), args.rate, args.raw, !args.no_throttle);
 
     thread::spawn(move || match file {
-        None => Device::<Rtl>::new(rate)
-            .expect("Failed to open the RTL-SDR")
-            .sample(channels, ctx),
+        None => {
+            info!("Opening RTL-SDR device with rate: {}", rate);
+            Device::<Rtl>::new(rate)
+                .expect("Failed to open the RTL-SDR")
+                .sample(channels, ctx)
+        },
         Some(path) => {
+            info!("Opening file device: {} (raw: {}, throttle: {})", path, raw, throttle);
             if raw {
                 Device::<RawFile>::new(path, rate, throttle).sample(channels, ctx)
             } else {
