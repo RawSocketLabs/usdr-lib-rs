@@ -13,8 +13,6 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: Peaks)
 
     let blocks: Vec<(&FreqSample, IQBlock)> = peaks.iter().map(|peak| (&peak.sample, flat.clone())).collect();
 
-    println!("{:?}", blocks.len());
-
     let metadata: Vec<DmrMetadata> = blocks
         .into_par_iter()
         .filter_map(|(peak, mut flat)| {

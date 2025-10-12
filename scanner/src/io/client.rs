@@ -11,7 +11,7 @@ pub struct Clients(Vec<Client>);
 impl Clients {
     pub fn send(&mut self, msg: &External) {
         for client in self.0.iter_mut() {
-            bincode::encode_into_std_write(msg, &mut client.stream, client.config).unwrap();
+            client.send(msg);
         }
     }
 }
@@ -31,7 +31,7 @@ impl DerefMut for Clients {
 }
 
 pub struct Client {
-    client_type: ConnectionType,
+    pub client_type: ConnectionType,
     stream: UnixStream,
     internal_tx: Sender<Internal>,
     config: Configuration<BigEndian, Fixint>,
@@ -47,7 +47,7 @@ impl Client {
         }
     }
 
-    pub fn test(&mut self) {
-
+    pub fn send(&mut self, msg: &External) {
+        bincode::encode_into_std_write(msg, &mut self.stream, self.config).unwrap();
     }
 }

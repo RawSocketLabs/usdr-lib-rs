@@ -16,7 +16,7 @@ pub enum External {
     Metadata(BTreeMap<u32, DmrMetadata>),
 }
 
-#[derive(Clone, Encode, Decode, Debug)]
+#[derive(Clone, Encode, Decode, Debug, PartialEq, Eq)]
 pub enum ConnectionType {
     Display,
     Metadata,

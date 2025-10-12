@@ -3,7 +3,7 @@ use tokio::sync::mpsc::Sender;
 use shared::ConnectionType;
 use crate::io::{Client, Internal};
 
-pub async fn start(client_tx: Sender<Client>, internal_tx: Sender<Internal>) {
+pub fn start(client_tx: Sender<Client>, internal_tx: Sender<Internal>) {
     std::thread::spawn( move || {
         std::fs::remove_file("/tmp/sdrscanner").unwrap_or(());
         let listener = UnixListener::bind("/tmp/sdrscanner").unwrap();

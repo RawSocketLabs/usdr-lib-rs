@@ -34,13 +34,6 @@ async fn main() {
     // Clients connected messages
     let (client_tx, mut client_rx) = channel::<Client>(4);
 
-    // Structured messages from the program destin to external applications.
-    let (out_tx, mut out_rx) = broadcast::channel::<External>(512);
-
-    // Dedicated channel to send metadata
-    let (metadata_tx, mut metadata_rx) = channel::<Vec<DmrMetadata>>(32);
-    ////
-
     // Initialize variables into the top-level context object.
     let mut ctx = Context::new(&args, dev_tx.clone()).unwrap();
 
@@ -55,10 +48,8 @@ async fn main() {
     );
 
     // Dedicated OS thread to handle new external applications (in/out)
-    io::start(client_tx, internal_tx.clone()).await;
-    ////
+    io::start(client_tx, internal_tx.clone());
 
-    //let main_loop_internal_tx_clone = internal_tx.clone();
     // Main Loop
     loop {
         tokio::select! {
@@ -86,20 +77,23 @@ async fn main() {
                         ctx.storage.update_metadata(block_metadata);
                         ctx.clients.send(&External::Metadata(ctx.storage.metadata.clone()))
                     }
-                    _ => unimplemented!(),
                 }
             },
 
             // Handle Client Messages
-            Some(client) = client_rx.recv() => {
-                ctx.clients.push(client)
+            Some(mut client) = client_rx.recv() => {
+                if client.client_type == shared::ConnectionType::Display {
+                    let current_display = &External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate()));
+                    client.send(current_display);
+                }
+
+                ctx.clients.push(client);
             }
 
             // Handle IQ & Freq blocks being sent from the SDR.
             Some((iq_block, freq_block)) = process_rx.recv(), if ctx.process.is_processing() => {
                 // Update any connected clients with the new IQ & Freq blocks.
                 ctx.clients.send(&External::Realtime(freq_block.clone()));
-                ctx.clients.send(&External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate())));
 
                 // Add the IQ block and update the average Freq block for the current context.
                 ctx.current.update(iq_block, freq_block);
