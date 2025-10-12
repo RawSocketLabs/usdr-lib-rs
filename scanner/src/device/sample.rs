@@ -5,7 +5,7 @@ use sdr::{Device, SdrControl};
 // LOCAL CRATE
 use crate::device::traits::Sample;
 use crate::device::{DevChannels, DevMsg, SampleContext};
-use crate::io::Input;
+use crate::io::Internal;
 
 impl<T: SdrControl> Sample<T> for Device<T> {
     fn sample(&mut self, mut channels: DevChannels, mut ctx: SampleContext) {
@@ -26,7 +26,6 @@ fn handle_message<T: SdrControl>(
 ) {
     match channels.dev_rx.try_recv() {
         Ok(DevMsg::ChangeFreq(new_freq)) => change_dev_freq(device, channels, ctx, new_freq),
-        Ok(DevMsg::ClientsConnected(connected)) => ctx.clients_connected = connected,
         _ => {} // Log this weird error case...
     }
 }
@@ -47,7 +46,7 @@ fn change_dev_freq<T: SdrControl>(
 
     // Send the message back up that we have switched frequencies
     // TODO: Properly handle errors here...
-    let _update = channels.main_tx.blocking_send(Input::DeviceFreqUpdated);
+    let _update = channels.main_tx.blocking_send(Internal::DeviceFreqUpdated);
 }
 
 fn send_freq_and_iq<T: SdrControl>(
@@ -64,10 +63,6 @@ fn send_freq_and_iq<T: SdrControl>(
         iq_block.apply_window(&ctx.window);
 
         if let Ok(freq_block) = iq_block.compute_freq_block(ctx.rate, &*ctx.fft, ctx.freq) {
-            if ctx.clients_connected {
-                // TODO: Properly handle errors here...
-                let _ = channels.realtime_tx.send(freq_block.clone());
-            }
             // TODO: Properly handle errors here...
             // NOTE: We should come back to this and determine if we need a tick interval and
             // whether this thread needs to be async in nature...

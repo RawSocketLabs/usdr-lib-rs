@@ -5,12 +5,15 @@ use rayon::prelude::*;
 use crate::process::{ScanDmrMetadataExt, ProcessContext, SignalPreProcessor};
 use sdr::{FreqSample, IQBlock, IQSample, Peaks};
 use sdr::dmr::DmrProcessor;
+use crate::io::Internal;
 
-pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: Peaks) -> Vec<DmrMetadata> {
+pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: Peaks) -> Vec<DmrMetadata>{
     // TODO: There has to be a better way...
     let flat = IQBlock::from(iq_blocks.into_iter().flat_map(|block| block.inner()).collect::<Vec<IQSample>>());
 
     let blocks: Vec<(&FreqSample, IQBlock)> = peaks.iter().map(|peak| (&peak.sample, flat.clone())).collect();
+
+    println!("{:?}", blocks.len());
 
     let metadata: Vec<DmrMetadata> = blocks
         .into_par_iter()

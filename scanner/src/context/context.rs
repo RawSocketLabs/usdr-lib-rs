@@ -11,7 +11,7 @@ use tokio::sync::mpsc::Sender;
 use crate::Cli;
 use crate::device::DevMsg;
 use crate::context::{CurrentState, StoredInfo, ProcessParameters, ScanContext, ScanMode};
-
+use crate::io::Clients;
 
 /// Context object to hold state during runtime
 pub(crate) struct Context {
@@ -19,6 +19,7 @@ pub(crate) struct Context {
     pub(crate) process: ProcessParameters,
     pub(crate) scan: ScanContext,
     pub(crate) storage: StoredInfo,
+    pub(crate) clients: Clients,
 }
 
 impl Context {
@@ -28,6 +29,7 @@ impl Context {
             process: ProcessParameters::new(args),
             scan: ScanContext::new(ScanMode::from_str(&args.scan_mode)?, args, dev_tx)?,
             storage: StoredInfo::default(),
+            clients: Clients::default(),
         })
 
     }

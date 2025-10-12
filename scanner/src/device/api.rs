@@ -14,7 +14,7 @@ use sdr::file::raw::RawFile;
 use sdr::file::wav::WavFile;
 use sdr::tuner::rtl::Rtl;
 // LOCAL CRATE
-use crate::io::Input;
+use crate::io::Internal;
 use crate::{
     cli::Cli,
     device::{DevChannels, DevMsg, SampleContext, traits::Sample},
@@ -25,9 +25,8 @@ pub fn start(
     args: &Cli,
     freq: usize,
     dev_rx: Receiver<DevMsg>,
-    input_tx: Sender<Input>,
+    internal_tx: Sender<Internal>,
     process_tx: Sender<(IQBlock, FreqBlock)>,
-    realtime_tx: WatchSender<FreqBlock>,
 ) {
     let ctx = SampleContext::new(
         args.rate,
@@ -36,7 +35,7 @@ pub fn start(
         Window::Hann(Hann::new(args.fft_size)),
         Duration::from_millis(args.sleep_ms),
     );
-    let channels = DevChannels::new(dev_rx, input_tx, process_tx, realtime_tx);
+    let channels = DevChannels::new(dev_rx, internal_tx, process_tx);
     let (file, rate, raw, throttle) = (args.file.clone(), args.rate, args.raw, !args.no_throttle);
 
     thread::spawn(move || match file {

@@ -1,16 +1,6 @@
-use std::collections::{BTreeMap};
-use sdr::{Peaks};
-use shared::{ConnectionType, DisplayInfo, DmrMetadata};
+use shared::DmrMetadata;
 
-#[derive(Clone, Debug)]
-pub enum Output {
-    Metadata(BTreeMap<u32, DmrMetadata>),
-    Peaks(Peaks),
-    Display(DisplayInfo),
-    Connection(ConnectionType)
-}
-pub enum Input {
+pub enum Internal {
     DeviceFreqUpdated,
-    ClientAtLeastOneConnected,
-    ClientNoneConnected,
+    BlockMetadata(Vec<DmrMetadata>),
 }
