@@ -32,7 +32,7 @@ async fn handle_client(mut stream: UnixStream, in_tx: Sender<Input>, out_rx: Bro
     }
 }
 
-async fn handle_display_client(mut stream: UnixStream, config: Configuration<BigEndian, Fixint>, in_tx: Sender<Input>, mut out_rx: BroadcastReceiver<Output>, mut realtime_rx: WatchReceiver<FreqBlock>, initial_display_info: DisplayInfo) {
+async fn handle_display_client(mut stream: UnixStream, config: Configuration<BigEndian, Fixint>, _in_tx: Sender<Input>, mut out_rx: BroadcastReceiver<Output>, mut realtime_rx: WatchReceiver<FreqBlock>, initial_display_info: DisplayInfo) {
     bincode::encode_into_std_write(External::Display(initial_display_info), &mut stream, config).unwrap();
     loop {
         tokio::select! {

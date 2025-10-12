@@ -13,26 +13,6 @@ const DMR_BANDWIDTH: usize = 12500;
 pub const AUDIO_RATE: usize = 48000;
 const SYMBOL_RATE: usize = 4800;
 
-#[derive(Debug)]
-pub struct SignalMetadata {
-    pub dmr_metadata: HashMap<u32, DmrMetadata>,
-}
-
-impl SignalMetadata {
-    pub fn get_existing_metadata(&mut self, freq: u32) -> Option<(u32, &mut DmrMetadata)> {
-        for (key, value) in &mut self.dmr_metadata {
-            if value.within_band(freq) {
-                return Some((*key, value));
-            }
-        }
-        None
-    }
-
-    pub fn update(&mut self, metadata: DmrMetadata) {
-        self.dmr_metadata.insert(metadata.freq, metadata);
-    }
-}
-
 /// Struct for handling DMR processing
 pub struct SignalPreProcessor {
     graph: MTGraph,

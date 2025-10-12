@@ -1,5 +1,5 @@
-use shared::{DisplayInfo, DmrMetadata, FreqBlock, FreqSample, Peaks};
-use std::collections::{BTreeMap, HashMap};
+use shared::{DisplayInfo, DmrMetadata, FreqBlock, Peaks};
+use std::collections::{BTreeMap};
 use tokio::sync::{mpsc, watch};
 
 pub struct App {
@@ -15,6 +15,7 @@ pub struct App {
     pub should_quit: bool,
     pub frequency: u32,
     pub current_peaks: Option<Peaks>,
+    pub table_scroll_state: usize,
 }
 
 impl App {
@@ -45,10 +46,22 @@ impl App {
             current_metadata: BTreeMap::new(),
             should_quit: false,
             current_peaks: None,
+            table_scroll_state: 0,
         }
     }
 
     pub fn quit(&mut self) {
         self.should_quit = true;
+    }
+
+    pub fn scroll_table_down(&mut self) {
+        if self.current_metadata.len() > 0 {
+            self.table_scroll_state = (self.table_scroll_state + 1)
+                .min(self.current_metadata.len().saturating_sub(1));
+        }
+    }
+
+    pub fn scroll_table_up(&mut self) {
+        self.table_scroll_state = self.table_scroll_state.saturating_sub(1);
     }
 }

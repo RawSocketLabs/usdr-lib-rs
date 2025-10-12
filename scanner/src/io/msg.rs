@@ -1,5 +1,5 @@
 use std::collections::{BTreeMap};
-use sdr::{FreqSample, Peaks};
+use sdr::{Peaks};
 use shared::{ConnectionType, DisplayInfo, DmrMetadata};
 
 #[derive(Clone, Debug)]

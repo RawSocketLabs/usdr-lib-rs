@@ -22,6 +22,12 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
        KeyCode::Left => {
             app.y_bounds[1] -= if app.y_bounds[1] - 10.0 > app.y_bounds[0] {5.0} else {0.0};
         }
+        KeyCode::Char('s') | KeyCode::Char('S') => {
+            app.scroll_table_down();
+        }
+        KeyCode::Char('w') | KeyCode::Char('W') => {
+            app.scroll_table_up();
+        }
         _ => {}
     };
 }

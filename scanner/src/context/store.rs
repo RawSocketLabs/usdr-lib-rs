@@ -2,10 +2,8 @@
 use std::collections::{BTreeMap};
 
 // THIRD PARTY
-use chrono::{DateTime, Utc};
 use shared::DmrMetadata;
 // VENDOR CRATES
-use sdr::FreqSample;
 
 #[derive(Default)]
 pub struct StoredInfo {
@@ -29,10 +27,4 @@ impl StoredInfo {
             }
         }
     }
-}
-
-#[derive(Clone)]
-pub struct Observation {
-    pub timestamp: DateTime<Utc>,
-    pub sample: FreqSample,
 }

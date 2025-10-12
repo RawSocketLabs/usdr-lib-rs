@@ -33,7 +33,7 @@ async fn main() {
     let (in_tx, mut in_rx) = channel::<Input>(512);
 
     // Structured messages from the program destin to external applications.
-    let (out_tx, out_rx) = broadcast::channel::<Output>(512);
+    let (out_tx, _out_rx) = broadcast::channel::<Output>(512);
 
     // Dedicated channel to send metadata
     let (metadata_tx, mut metadata_rx) = channel::<Vec<DmrMetadata>>(32);

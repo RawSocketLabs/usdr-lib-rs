@@ -1576,6 +1576,7 @@ name = "tui"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "chrono",
  "color-eyre",
  "crossterm 0.29.0",
  "ratatui",

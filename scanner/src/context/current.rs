@@ -1,5 +1,4 @@
-use rustradio::sigmf::parse_meta;
-use sdr::{AverageFreqBlock, FreqBlock, FreqSample, IQBlock, PeakParameters, Peaks};
+use sdr::{AverageFreqBlock, FreqBlock, IQBlock, PeakParameters, Peaks};
 use smoothed_z_score::PeaksDetector;
 use crate::context::ProcessParameters;
 
