@@ -5,7 +5,7 @@ use std::time::Duration;
 // THIRD PARTY CRATES
 use tokio::sync::{
     mpsc::{Receiver, Sender},
-    watch::Sender as WatchSender,
+    watch,
 };
 
 // VENDOR CRATES
@@ -27,6 +27,8 @@ pub fn start(
     dev_rx: Receiver<DevMsg>,
     internal_tx: Sender<Internal>,
     process_tx: Sender<(IQBlock, FreqBlock)>,
+    realtime_tx: watch::Sender<FreqBlock>,
+    client_count: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) {
     let ctx = SampleContext::new(
         args.rate,
@@ -35,7 +37,7 @@ pub fn start(
         Window::Hann(Hann::new(args.fft_size)),
         Duration::from_millis(args.sleep_ms),
     );
-    let channels = DevChannels::new(dev_rx, internal_tx, process_tx);
+    let channels = DevChannels::new(dev_rx, internal_tx, process_tx, realtime_tx, client_count);
     let (file, rate, raw, throttle) = (args.file.clone(), args.rate, args.raw, !args.no_throttle);
 
     thread::spawn(move || match file {

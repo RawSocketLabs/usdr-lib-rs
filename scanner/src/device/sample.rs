@@ -63,9 +63,12 @@ fn send_freq_and_iq<T: SdrControl>(
         iq_block.apply_window(&ctx.window);
 
         if let Ok(freq_block) = iq_block.compute_freq_block(ctx.rate, &*ctx.fft, ctx.freq) {
-            // TODO: Properly handle errors here...
-            // NOTE: We should come back to this and determine if we need a tick interval and
-            // whether this thread needs to be async in nature...
+            // Send realtime data via watch channel if display clients are connected
+            if channels.client_count.load(std::sync::atomic::Ordering::Relaxed) > 0 {
+                let _ = channels.realtime_tx.send(freq_block.clone());
+            }
+            
+            // Always send to process channel for main loop processing
             let _ = channels.process_tx.try_send((iq_block_raw, freq_block));
         }
     }
