@@ -1,6 +1,6 @@
 use crate::cli::Cli;
 use crate::device::DevMsg;
-use sdr::FreqRange;
+use sdr::{Freq, FreqRange};
 use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
@@ -19,7 +19,7 @@ impl ScanContext {
         })
     }
 
-    pub fn current(&self) -> usize {
+    pub fn current(&self) -> Freq {
         self.manager.current()
     }
 
@@ -39,7 +39,7 @@ impl ScanContext {
 pub(crate) struct ScanManager {
     idx: usize,
     pub(crate) rate: u32,
-    current: usize,
+    current: Freq,
     step_size: usize,
     pub(crate) cycles_completed: usize,
     sleep_duration: Duration,
@@ -79,13 +79,13 @@ impl ScanManager {
             step_size: (args.rate as usize) / 4,
             sleep_duration: Duration::from_millis(args.sleep_ms),
             cycles_completed: 0,
-            current,
+            current: current.into(),
             range_type,
             dev_tx,
         })
     }
 
-    pub fn current(&self) -> usize {
+    pub fn current(&self) -> Freq {
         self.current
     }
 
@@ -96,11 +96,11 @@ impl ScanManager {
             },
             FreqRangeType::Ranges(ranges) => {
                 // Increment the current center frequency
-                if ranges[self.idx].stop >= self.current + self.step_size {
-                    self.current += self.step_size;
+                if ranges[self.idx].stop >= self.current.as_usize() + self.step_size {
+                    *self.current += self.step_size as u32;
                 } else {
                     self.idx = (self.idx + 1) % ranges.len();
-                    self.current = ranges[self.idx].start;
+                    self.current = ranges[self.idx].start.into();
                     if self.idx == 0 {
                         self.cycles_completed += 1;
                     }

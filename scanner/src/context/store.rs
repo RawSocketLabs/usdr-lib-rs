@@ -1,8 +1,9 @@
 // STD LIB
 use std::collections::{BTreeMap};
-
+use sdr::Freq;
 // THIRD PARTY
 use shared::DmrMetadata;
+use crate::process::DMR_BANDWIDTH;
 // VENDOR CRATES
 
 #[derive(Default)]
@@ -15,7 +16,8 @@ impl StoredInfo {
         for metadata in new_metadata {
             if let Some(&freq) = self.metadata.iter()
                 .find_map(|(freq, _)|
-                    if metadata.within_band(*freq) { Some(freq) } else { None }) {
+                    // TODO: We will not need to do this if we check if peaks are within band earlier
+                    if metadata.freq.within_band(Freq::new(*freq), DMR_BANDWIDTH) { Some(freq) } else { None }) {
                 let existing = self.metadata.get_mut(&freq).unwrap();
                 existing.messages.extend(metadata.messages);
                 existing.slot_data_types.extend(metadata.slot_data_types);
@@ -23,7 +25,7 @@ impl StoredInfo {
                 existing.syncs.extend(metadata.syncs);
                 existing.observation_time = metadata.observation_time;
             } else {
-                self.metadata.insert(metadata.freq, metadata);
+                self.metadata.insert(*metadata.freq, metadata);
             }
         }
     }

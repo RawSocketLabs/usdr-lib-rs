@@ -3,8 +3,7 @@ use std::collections::{HashSet, BTreeMap};
 use std::time::SystemTime;
 use bincode::{Decode, Encode};
 use sdr::dmr::{FeatureSetID, SlotDataType, SyncPattern};
-
-const DMR_BANDWIDTH: usize = 12500;
+use sdr::Freq;
 
 #[derive(Encode, Decode, Clone, Debug)]
 pub enum External {
@@ -24,12 +23,12 @@ pub enum ConnectionType {
 
 #[derive(Clone, Encode, Decode, Debug)]
 pub struct DisplayInfo {
-    pub center_freq: usize,
+    pub center_freq: Freq,
     pub rate: usize,
 }
 
 impl DisplayInfo {
-    pub fn new(center_freq: usize, rate: u32) -> Self {
+    pub fn new(center_freq: Freq, rate: u32) -> Self {
         Self {
             center_freq,
             rate: rate as usize,
@@ -39,7 +38,7 @@ impl DisplayInfo {
 
 #[derive(Debug, Clone, Encode, Decode, PartialEq)]
 pub struct DmrMetadata {
-    pub freq: u32,
+    pub freq: Freq,
     pub rssi: f32,
     pub observation_time: SystemTime,
     pub syncs: HashSet<SyncPattern>,
@@ -79,7 +78,7 @@ pub struct MetadataGroupVoice {
 }
 
 impl DmrMetadata {
-    pub fn new(freq: u32, rssi: f32) -> Self {
+    pub fn new(freq: Freq, rssi: f32) -> Self {
         Self {
             freq,
             rssi,
@@ -89,9 +88,5 @@ impl DmrMetadata {
             messages: HashSet::new(),
             slot_data_types: HashSet::new(),
         }
-    }
-
-    pub fn within_band(&self, freq: u32) -> bool {
-        self.freq.abs_diff(freq) < DMR_BANDWIDTH as u32
     }
 }

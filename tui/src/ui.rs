@@ -44,7 +44,7 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
     let freq_block_vec = app
         .current_freq_block
         .iter()
-        .map(|f| (f.freq as f64 / 1e6, f.db as f64))
+        .map(|f| (f.freq.as_f64() / 1e6, f.db as f64))
         .collect::<Vec<(f64, f64)>>();
 
     let dataset = Dataset::default()
@@ -60,7 +60,7 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
             let mut result = Vec::new();
             for peak in peaks {
                 for i in (peak.sample.db as i32)..=app.y_bounds[1] as i32 {
-                    result.push((peak.sample.freq as f64 / 1e6, i as f64));
+                    result.push((peak.sample.freq.as_f64() / 1e6, i as f64));
                 }
             }
             result

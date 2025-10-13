@@ -1,4 +1,6 @@
+use sdr::Freq;
+
 pub enum DevMsg {
-    ChangeFreq(usize),
+    ChangeFreq(Freq),
     DeviceFreqUpdated
 }

@@ -1,12 +1,14 @@
+use sdr::Freq;
+
 pub struct ProcessContext {
-    pub(crate) center_freq: u32,
+    pub(crate) center_freq: Freq,
     pub(crate) sample_rate: u32,
     pub(crate) process_type: ProcessType,
 }
 
 impl ProcessContext {
     pub fn new(
-        center_freq: u32,
+        center_freq: Freq,
         sample_rate: u32,
         process_type: ProcessType,
     ) -> Self {

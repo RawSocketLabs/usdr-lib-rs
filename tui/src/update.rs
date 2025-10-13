@@ -41,7 +41,7 @@ pub fn receive_new_data(app: &mut App) {
 
     if let Ok(display_info) = app.display_info_rx.try_recv() {
         // eprintln!("TUI received display info: center_freq={}, rate={}", display_info.center_freq, display_info.rate);
-        app.frequency = display_info.center_freq as u32;
+        app.frequency = *display_info.center_freq;
         app.sample_rate = display_info.rate as u32;
     }
 

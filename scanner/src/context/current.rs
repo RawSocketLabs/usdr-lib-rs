@@ -1,10 +1,76 @@
-use sdr::{AverageFreqBlock, FreqBlock, IQBlock, PeakParameters, Peaks};
+use sdr::{AverageFreqBlock, Freq, FreqBlock, FreqSample, IQBlock, Peak, PeakParameters, Peaks};
 use smoothed_z_score::PeaksDetector;
 use crate::context::ProcessParameters;
+use crate::process::DMR_BANDWIDTH;
+
+// // TODO: There is something here about how it should impact center freq tracking.
+// pub struct ObservedPeaks {
+//     center_freq: Vec<CenterFreq>,
+// }
+//
+// #[derive(Debug, Default)]
+// pub struct CenterFreq {
+//     pub average_center_freq_sample: FreqSample,
+//     pub observation_count: usize,
+//     pub bandwidth: usize,
+//     pub last_updated: u128,
+// }
+//
+// impl CenterFreq {
+//     // Take an initial peak sample and an expected signal bandwidth to generate a new center freq for tracking
+//     pub fn new(initial_freq_sample: FreqSample, bandwidth: usize) -> Self {
+//         Self {
+//             average_center_freq_sample: initial_freq_sample,
+//             observation_count: 1,
+//             bandwidth,
+//             last_updated: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u128,
+//         }
+//     }
+//
+//     // Update an existing center freq with a new sample
+//     pub fn update(&mut self, current_freq: FreqSample) {
+//         self.last_updated = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u128;
+//         self.observation_count += 1;
+//         self.
+//     }
+//
+//     // Check to see if the passed frequency should update an existing center freq or be processed as a new center freq
+//     // TODO: This probably relates to a confidence interval based on how many observations have occured ect.
+//     // TODO: There is probably an additional update step where this should store the last 5 samples and get metadata for it
+//     // TODO: From there we can leverage the metadata and the current info to figure out if there are two close frequencies
+//     // TODO: Start simple and just go within band portion.
+//     pub fn meets_center_freq_threshold_criteria() -> bool {
+//         true
+//     }
+// }
+
+// #[derive(Debug, Default)]
+// pub struct ProcessingFreq(u128, Freq);
+//
+// impl ProcessingFreq {
+//     pub fn new(end_time: u128, freq: Freq) -> Self {
+//         Self(end_time,freq)
+//     }
+//
+//     pub fn expired(&self, current_time: u128) -> bool {
+//         current_time >= self.0
+//     }
+//
+//     pub fn freq(&self) -> Freq {
+//         self.1
+//     }
+// }
 
 #[derive(Debug, Default)]
 pub struct CurrentState {
+    // Peaks detected during the peak evaluation interval
     pub peaks: Peaks,
+
+    // Peaks that are currently being processed (within band)
+    pub processing_peaks: Peaks,
+
+    // pub observed_peaks: Vec<CenterFreq>,
+
     pub collected_iq: Vec<IQBlock>,
     pub average_freq_block: AverageFreqBlock,
 }
@@ -16,6 +82,28 @@ impl CurrentState {
         self.average_freq_block.block.clear();
         self.average_freq_block.count = 0;
     }
+
+    pub fn remove_processed_peaks(&mut self, processed_peaks: Peaks) {
+        for processed_peak in processed_peaks {
+            self.processing_peaks.retain(|peak| peak.sample.freq != processed_peak.sample.freq);
+        }
+    }
+
+    // The peaks returned here are peaks for evaluation purposes they do n
+    pub fn peaks_to_process(&mut self) -> Peaks {
+        // Capture new frequencies that should be processed
+        let mut peaks_to_process = Vec::new();
+        for peak in self.peaks.drain(..) {
+            if self.processing_peaks.iter().any(|processing_peak| processing_peak.sample.freq.within_band(peak.sample.freq, DMR_BANDWIDTH)) {
+                continue;
+            } else {
+                self.processing_peaks.push(peak);
+                peaks_to_process.push(peak);
+            }
+        }
+        peaks_to_process
+    }
+
     pub fn update(&mut self, iq_block: IQBlock, freq_block: FreqBlock) {
         self.collected_iq.push(iq_block);
         if self.peaks.is_empty() {
@@ -27,13 +115,13 @@ impl CurrentState {
        self.average_freq_block.update(freq_block);
     }
 
-    pub fn detect_peaks(&mut self, params: &ProcessParameters) {
+    pub fn detect_peaks(&mut self, params: &ProcessParameters, center_freq: Freq) {
         let peak_params = PeakParameters {
             bandwidth: params.bandwidth,
             detector: PeaksDetector::new(params.lag, 5.0, 0.5),
         };
 
-        self.peaks = self.average_freq_block.get_peaks_with_params(peak_params);
+        self.peaks = self.average_freq_block.get_peaks_with_params(peak_params, center_freq);
     }
 
     pub fn peak_detection_criteria_met(&self, params: &ProcessParameters) -> bool {

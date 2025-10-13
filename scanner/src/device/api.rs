@@ -10,7 +10,7 @@ use tokio::sync::{
 use tracing::info;
 
 // VENDOR CRATES
-use sdr::{Device, FreqBlock, Hann, IQBlock, Window};
+use sdr::{Device, Freq, FreqBlock, Hann, IQBlock, Window};
 use sdr::file::raw::RawFile;
 use sdr::file::wav::WavFile;
 use sdr::tuner::rtl::Rtl;
@@ -24,7 +24,7 @@ use crate::{
 /// Public API for starting a dedicated thread for sampling from a given device or file.
 pub fn start(
     args: &Cli,
-    freq: usize,
+    freq: Freq,
     dev_rx: Receiver<DevMsg>,
     internal_tx: Sender<Internal>,
     process_tx: Sender<(IQBlock, FreqBlock)>,

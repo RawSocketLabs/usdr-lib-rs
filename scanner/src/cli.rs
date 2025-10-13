@@ -41,13 +41,13 @@ pub struct Cli {
     #[clap(long, default_value = "SweepAndProcess")]
     pub scan_mode: String,
 
-    /// Time to observe signal for baseline averaging (milliseconds)
-    #[clap(long, default_value = "20")]
-    pub observation_time_ms: u32,
+    /// Time to observe signal for baseline averaging during peak detection (milliseconds)
+    #[clap(long, default_value = "5")]
+    pub peak_detection_time_ms: u32,
 
-    /// Time to inspect signal for metadata acquisition (milliseconds)
-    #[clap(long, default_value = "100")]
-    pub metadata_time_ms: u32,
+    /// Max number of bursts to attempt to recover when processing peaks for metadata
+    #[clap(long, default_value = "5")]
+    pub max_number_of_bursts: usize,
 
     /// Number of blocks required for processing metadata
     #[clap(long)]

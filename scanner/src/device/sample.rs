@@ -1,6 +1,6 @@
 use std::time::Duration;
 // VENDOR CRATES
-use sdr::{Device, SdrControl};
+use sdr::{Device, Freq, SdrControl};
 
 // LOCAL CRATE
 use crate::device::traits::Sample;
@@ -36,11 +36,11 @@ fn change_dev_freq<T: SdrControl>(
     device: &mut Device<T>,
     channels: &mut DevChannels,
     ctx: &mut SampleContext,
-    new_freq: usize,
+    new_freq: Freq,
 ) {
     // Change the device center frequency
     // TODO: Properly handle errors here...
-    ctx.freq = new_freq as u32;
+    ctx.freq = new_freq;
     let _ = device.set_center_frequency(ctx.freq);
 
     // Give the SDR time to actually change over to the new center freq

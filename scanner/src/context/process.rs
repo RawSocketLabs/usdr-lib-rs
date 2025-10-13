@@ -33,20 +33,19 @@ impl ProcessParameters {
         let block_duration_ms = (args.fft_size as f32 / args.rate as f32) * 1000.0;
         
         // Convert millisecond times to block counts
-        let observation_blocks = ms_to_blocks(args.observation_time_ms, args.rate, args.fft_size);
-        let metadata_blocks = ms_to_blocks(args.metadata_time_ms, args.rate, args.fft_size);
-        
+        let observation_blocks = ms_to_blocks(args.peak_detection_time_ms, args.rate, args.fft_size);
+
         // Calculate minimum blocks required for DMR burst recovery
-        let min_blocks_required_for_burst_recovery = (BITS_PER_BURST * 2 * SAMPLES_PER_SYMBOL_4800) as f32 / (args.fft_size as f32 * (AUDIO_RATE as f32 / args.rate as f32));
+        let blocks_per_burst = (BITS_PER_BURST * 2 * SAMPLES_PER_SYMBOL_4800) as f32 / (args.fft_size as f32 * (AUDIO_RATE as f32 / args.rate as f32));
         
         // Use the larger of requested metadata time or minimum DMR requirement
-        let final_metadata_blocks = metadata_blocks.max(min_blocks_required_for_burst_recovery as usize);
+        let final_metadata_blocks = (blocks_per_burst * args.max_number_of_bursts as f32) as usize;
         
         // Log the conversions for transparency
         info!("Block duration: {:.3}ms", block_duration_ms);
-        info!("Observation time: {}ms = {} blocks", args.observation_time_ms, observation_blocks);
+        info!("Observation time: {}ms = {} blocks", args.peak_detection_time_ms, observation_blocks);
         info!("Metadata time: {}ms = {} blocks (min DMR: {} blocks)", 
-              args.metadata_time_ms, final_metadata_blocks, min_blocks_required_for_burst_recovery as usize);
+              args.max_number_of_bursts, final_metadata_blocks, blocks_per_burst as usize);
         
         Self {
             process: true,

@@ -9,7 +9,7 @@ use shared::{MetadataGroupVoice, Message, DmrMetadata, MetadataCSBK};
 use sdr::dmr::{Burst, DataInfo, FeatureSetID, FullLinkControlData, TerminatorWithLinkControl, VoiceLinkControlHeader};
 
 const CHANNEL_RATE: usize = 125000;
-const DMR_BANDWIDTH: usize = 12500;
+pub const DMR_BANDWIDTH: usize = 12500;
 pub const AUDIO_RATE: usize = 48000;
 const SYMBOL_RATE: usize = 4800;
 
@@ -96,6 +96,25 @@ impl ScanDmrMetadataExt for DmrMetadata {
                         match link_control.data {
                             FullLinkControlData::GroupVoiceChannelUser(data) => {
                                 self.messages.insert(Message::GroupVoice(MetadataGroupVoice::new(link_control.feature_set_id, data.group_address().value(), data.source_address().value())));
+                            }
+                            FullLinkControlData::GPSInfo(data) => {
+                                println!("GPS Info: {:?}", data);
+                            }
+                            FullLinkControlData::TalkerAliasBlock1(data) => {
+                                println!("Talker Alias Block 1: {:?}", data);
+                            }
+                            FullLinkControlData::TalkerAliasBlock2(data) => {
+                                println!("Talker Alias Block 2: {:?}", data);
+                            }
+                            FullLinkControlData::TalkerAliasBlock3(data) => {
+                                println!("Talker Alias Block 3: {:?}", data);
+                            }
+                            FullLinkControlData::TalkerAliasHeader(data) => {
+                                println!("Talker Alias Header: {:?} {:?} {:?}", data.data_format(), data.data_length(), data.data());
+
+                            }
+                            FullLinkControlData::UnitToUnitVoiceChannelUser(data) => {
+                                println!("Unit To Unit Voice Channel User: {:?}", data);
                             }
                             _ => {}
                         }

@@ -16,7 +16,7 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: Peaks)
     let metadata: Vec<DmrMetadata> = blocks
         .into_par_iter()
         .filter_map(|(peak, mut flat)| {
-            flat.freq_shift(ctx.sample_rate, (peak.freq as i32 - ctx.center_freq as i32) as f32);
+            flat.freq_shift(ctx.sample_rate, (*peak.freq as i32 - ctx.center_freq.as_i32()) as f32);
 
             let mut metadata = DmrMetadata::new(peak.freq, peak.db);
 
