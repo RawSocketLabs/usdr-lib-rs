@@ -73,7 +73,7 @@ async fn main() {
     );
 
     // Start IO manager
-    let initial_display_info = External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate()));
+    let initial_display_info = External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate(), ctx.process.squelch));
     info!("Starting IO manager...");
     io_manager.start(external_tx.clone(), realtime_rx, internal_tx.clone(), initial_display_info).await;
     info!("IO manager started");
@@ -86,11 +86,11 @@ async fn main() {
             Some(msg) = internal_rx.recv() => {
                 match msg {
                     Internal::DeviceFreqUpdated => {
-                        info!("Device frequency updated to {}", ctx.scan.current());
+                        debug!("Device frequency updated to {}", ctx.scan.current());
                         // Clear pending process messages
                         while process_rx.try_recv().is_ok() {}
 
-                        let display_info = External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate()));
+                        let display_info = External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate(), ctx.process.squelch));
                         let _ = external_tx.send(display_info);
                         ctx.process.start()
                     },
@@ -100,19 +100,26 @@ async fn main() {
                         ctx.storage.update_metadata(block_metadata);
                         let metadata_msg = External::Metadata(ctx.storage.metadata.clone());
                         let _ = external_tx.send(metadata_msg);
+                    },
+                    Internal::Squelch(squelch) => {
+                        ctx.process.squelch = squelch;
+                        let display_info = External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate(), ctx.process.squelch));
+                        let _ = external_tx.send(display_info);
                     }
                 }
             },
 
             // Handle IQ & Freq blocks with proper yielding
             Some((iq_block, freq_block)) = process_rx.recv(), if ctx.process.is_processing() => {
+                // freq_block.squelch(ctx.process.squelch);
+
                 // Process data (lightweight operations)
-                ctx.current.update(iq_block, freq_block);
+                let peak_detection_criteria_met = ctx.current.update(iq_block, freq_block, &ctx.process);
 
                 // YIELD POINT: Let client tasks run
                 tokio::task::yield_now().await;
 
-                if ctx.current.peak_detection_criteria_met(&ctx.process) {
+                if peak_detection_criteria_met {
                     // Do peak detection (CPU-intensive but necessary)
                     ctx.current.detect_peaks(&ctx.process, ctx.scan.current());
 
@@ -138,7 +145,12 @@ async fn main() {
                     let rate = ctx.scan.rate();
                     let iq_blocks = std::mem::take(&mut ctx.current.collected_iq);
                     let internal_tx = internal_tx.clone();
-                    let peaks_to_process = ctx.current.peaks_to_process();
+                    ctx.current.reduce_peaks(&ctx.process);
+                    // println!("REDUCE {:?}", ctx.current.peaks);
+                    // let peaks_to_process = ctx.current.peaks_to_process();
+                    // println!("TO PROCESS {:?}", peaks_to_process);
+
+                    let peaks_to_process = std::mem::take(&mut ctx.current.peaks);
 
                     tokio::task::spawn(async move {
                         let process_ctx = ProcessContext::new(

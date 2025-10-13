@@ -104,10 +104,13 @@ impl CurrentState {
         peaks_to_process
     }
 
-    pub fn update(&mut self, iq_block: IQBlock, freq_block: FreqBlock) {
+    pub fn update(&mut self, iq_block: IQBlock, freq_block: FreqBlock, params: &ProcessParameters) -> bool {
         self.collected_iq.push(iq_block);
-        if self.peaks.is_empty() {
+        if self.collected_iq.len() % params.num_required_for_average != 0 {
             self.update_average(freq_block);
+            false
+        } else {
+            true
         }
     }
 
@@ -120,12 +123,31 @@ impl CurrentState {
             bandwidth: params.bandwidth,
             detector: PeaksDetector::new(params.lag, 5.0, 0.5),
         };
-
-        self.peaks = self.average_freq_block.get_peaks_with_params(peak_params, center_freq);
+        self.average_freq_block.block.squelch(params.squelch);
+        self.peaks.extend(self.average_freq_block.get_peaks_with_params(peak_params, center_freq));
+        self.average_freq_block.block.clear();
+        self.average_freq_block.count = 0;
     }
 
-    pub fn peak_detection_criteria_met(&self, params: &ProcessParameters) -> bool {
-        self.peaks.is_empty() && self.collected_iq.len() >= params.num_required_for_average
-    }
+    pub fn reduce_peaks(&mut self, params: &ProcessParameters) {
+        let half_bandwidth = params.bandwidth as i64 / 2;
+        let mut unfiltered_peaks = std::mem::take(&mut self.peaks);
+        unfiltered_peaks.sort_by(|a, b| b.sample.db.total_cmp(&a.sample.db));
 
+        for unfilitered in unfiltered_peaks.into_iter() {
+            let mut existing = false;
+            for reduced in &self.peaks {
+                if ((*unfilitered.sample.freq as i64) - (*reduced.sample.freq as i64)).abs() <= half_bandwidth {
+                    // A stronger peak already occupies this band; skip
+                    existing = true;
+                    break;
+                }
+            }
+            if !existing {
+                self.peaks.push(unfilitered);
+            }
+        }
+
+        self.peaks.sort_by_key(|p| *p.sample.freq);
+    }
 }

@@ -18,7 +18,7 @@ pub async fn handle_client(
     connection_type: ConnectionType,
     mut external_rx: broadcast::Receiver<External>,
     mut realtime_rx: watch::Receiver<FreqBlock>,
-    _internal_tx: mpsc::Sender<Internal>,
+    internal_tx: mpsc::Sender<Internal>,
     client_count: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) {
 
@@ -30,9 +30,13 @@ pub async fn handle_client(
                     Ok(Some(msg)) => {
                         // Handle External messages from clients
                         match msg {
-                            shared::External::Connection(conn_type) => {
+                            External::Connection(conn_type) => {
                                 debug!("Client {} sent connection type: {:?}", client_id, conn_type);
                                 // Could update connection type here if needed
+                            }
+                            External::Squelch(squelch) => {
+                                debug!("Client {} sent squelch: {:?}", client_id, squelch);
+                                internal_tx.try_send(Internal::Squelch(squelch)).unwrap();
                             }
                             _ => {
                                 warn!("Client {} sent unexpected message: {:?}", client_id, msg);

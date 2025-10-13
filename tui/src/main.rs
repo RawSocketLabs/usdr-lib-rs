@@ -22,6 +22,7 @@ async fn main() {
     let (peaks_tx, peaks_rx) = channel(1);
     let (center_freq_tx, center_freq_rx) = channel(1);
     let (metadata_tx, metadata_rx) = channel::<BTreeMap<u32, DmrMetadata>>(1);
+    let (squelch_tx, mut squelch_rx) = channel::<f32>(1);
 
     std::thread::spawn(move || {
         let backend = CrosstermBackend::new(std::io::stderr());
@@ -35,6 +36,7 @@ async fn main() {
             center_freq_rx,
             peaks_rx,
             metadata_rx,
+            squelch_tx,
             2_000_000,
             445_500_000,
         );
@@ -74,6 +76,12 @@ async fn main() {
         // Read length prefix
         use std::io::Read;
         let mut len_buf = [0u8; 4];
+        if let Some(squelch) = squelch_rx.try_recv().ok() {
+            let serialized = bincode::encode_to_vec(External::Squelch(squelch), config).unwrap();
+            stream.write_all(&(serialized.len() as u32).to_be_bytes()).unwrap();
+            stream.write_all(&serialized).unwrap();
+            stream.flush().unwrap();
+        }
         if stream.read_exact(&mut len_buf).is_ok() {
             let len = u32::from_be_bytes(len_buf) as usize;
             let mut buffer = vec![0u8; len];

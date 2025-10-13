@@ -13,6 +13,7 @@ pub enum External {
     Realtime(FreqBlock),
     Peaks(Peaks),
     Metadata(BTreeMap<u32, DmrMetadata>),
+    Squelch(f32),
 }
 
 #[derive(Clone, Encode, Decode, Debug, PartialEq, Eq)]
@@ -25,13 +26,15 @@ pub enum ConnectionType {
 pub struct DisplayInfo {
     pub center_freq: Freq,
     pub rate: usize,
+    pub squelch: f32,
 }
 
 impl DisplayInfo {
-    pub fn new(center_freq: Freq, rate: u32) -> Self {
+    pub fn new(center_freq: Freq, rate: u32, squelch: f32) -> Self {
         Self {
             center_freq,
             rate: rate as usize,
+            squelch,
         }
     }
 }

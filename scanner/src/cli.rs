@@ -42,11 +42,11 @@ pub struct Cli {
     pub scan_mode: String,
 
     /// Time to observe signal for baseline averaging during peak detection (milliseconds)
-    #[clap(long, default_value = "5")]
+    #[clap(long, default_value = "20")]
     pub peak_detection_time_ms: u32,
 
     /// Max number of bursts to attempt to recover when processing peaks for metadata
-    #[clap(long, default_value = "5")]
+    #[clap(long, default_value = "6")]
     pub max_number_of_bursts: usize,
 
     /// Number of blocks required for processing metadata
@@ -69,4 +69,7 @@ pub struct Cli {
     #[clap(long, action)]
     pub log_to_file: bool,
 
+    /// Squelch level for detecting peaks (dB).
+    #[clap(long, default_value = "-100.0")]
+    pub squelch: f32,
 }

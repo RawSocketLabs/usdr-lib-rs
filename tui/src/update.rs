@@ -28,6 +28,12 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('w') | KeyCode::Char('W') => {
             app.scroll_table_up();
         }
+        KeyCode::Char('a') | KeyCode::Char('A') => {
+            app.squelch_tx.try_send((app.squelch - 1.0).max(-100.0)).unwrap();
+        }
+        KeyCode::Char('d') | KeyCode::Char('D') => {
+            app.squelch_tx.try_send((app.squelch + 1.0).min(100.0)).unwrap();
+        }
         _ => {}
     };
 }
@@ -36,13 +42,14 @@ pub fn receive_new_data(app: &mut App) {
     let new_freq_block = app.current_freq_block_rx.borrow().to_vec();
     if new_freq_block.len() != app.current_freq_block.len() || !new_freq_block.is_empty() {
         // eprintln!("TUI received new freq_block with {} samples", new_freq_block.len());
-        app.current_freq_block = new_freq_block;
+        app.current_freq_block = new_freq_block.into();
     }
 
     if let Ok(display_info) = app.display_info_rx.try_recv() {
         // eprintln!("TUI received display info: center_freq={}, rate={}", display_info.center_freq, display_info.rate);
         app.frequency = *display_info.center_freq;
         app.sample_rate = display_info.rate as u32;
+        app.squelch = display_info.squelch;
     }
 
     if let Ok(results) = app.peaks_rx.try_recv() {

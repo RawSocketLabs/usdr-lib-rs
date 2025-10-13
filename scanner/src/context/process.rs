@@ -25,6 +25,7 @@ pub struct ProcessParameters {
     pub num_required_for_metadata: usize,
     freq_ranges_to_ignore: Vec<FreqRange>,
     is_file: bool,
+    pub squelch: f32,
 }
 
 impl ProcessParameters {
@@ -68,6 +69,7 @@ impl ProcessParameters {
                 })
                 .unwrap_or_default(),
             is_file: args.file.is_some(),
+            squelch: args.squelch,
         }
     }
 

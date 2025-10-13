@@ -6,4 +6,5 @@ use sdr::Peaks;
 pub enum Internal {
     DeviceFreqUpdated,
     BlockMetadata((Vec<DmrMetadata>, Peaks)),
+    Squelch(f32),
 }

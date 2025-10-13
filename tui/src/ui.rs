@@ -48,12 +48,27 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
         .collect::<Vec<(f64, f64)>>();
 
     let dataset = Dataset::default()
+        .name("FFT")
         .marker(Marker::Braille)
         .graph_type(GraphType::Line)
         .style(Style::default().fg(Color::LightMagenta))
         .data(&freq_block_vec);
 
     let mut datasets = vec![dataset];
+
+    let squelch_vec = match app.current_freq_block.len() {
+        0 => &[(0., app.squelch as f64), (0., app.squelch as f64)],
+        len => &[(*app.current_freq_block[0].freq as f64 / 1e6, app.squelch as f64), (*app.current_freq_block[len - 1].freq as f64 / 1e6, app.squelch as f64)]
+    };
+
+    let squelch_line = Dataset::default()
+        .name("Squelch")
+        .marker(Marker::Braille)
+        .graph_type(GraphType::Line)
+        .style(Style::default().fg(Color::Yellow))
+        .data(squelch_vec);
+
+    datasets.push(squelch_line);
 
     let peaks_vec = match app.current_peaks.as_ref() {
         Some(peaks) => {

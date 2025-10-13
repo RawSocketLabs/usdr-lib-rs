@@ -6,6 +6,7 @@ pub struct App {
     pub current_freq_block_rx: watch::Receiver<FreqBlock>,
     pub display_info_rx: mpsc::Receiver<DisplayInfo>,
     pub metadata_rx: mpsc::Receiver<BTreeMap<u32, DmrMetadata>>,
+    pub squelch_tx: mpsc::Sender<f32>,
     pub sample_rate: u32,
     pub peaks_rx: mpsc::Receiver<Peaks>,
     pub x_bounds: [f64; 2],
@@ -16,6 +17,7 @@ pub struct App {
     pub frequency: u32,
     pub current_peaks: Option<Peaks>,
     pub table_scroll_state: usize,
+    pub squelch: f32,
 }
 
 impl App {
@@ -24,6 +26,7 @@ impl App {
         center_freq_rx: mpsc::Receiver<DisplayInfo>,
         peaks_rx: mpsc::Receiver<Peaks>,
         metadata_rx: mpsc::Receiver<BTreeMap<u32, DmrMetadata>>,
+        squelch_tx: mpsc::Sender<f32>,
         sample_rate: u32,
         start_freq: u32,
     ) -> Self {
@@ -36,17 +39,19 @@ impl App {
             sample_rate,
             peaks_rx,
             metadata_rx,
+            squelch_tx,
             frequency,
             x_bounds: [
                 center_mhz as f64 - half_span_mhz as f64,
                 center_mhz as f64 + half_span_mhz as f64,
             ],
             y_bounds: [-60.0, 0.0],
-            current_freq_block: Vec::new(),
+            current_freq_block: FreqBlock::new(),
             current_metadata: BTreeMap::new(),
             should_quit: false,
             current_peaks: None,
             table_scroll_state: 0,
+            squelch: -100.0
         }
     }
 
