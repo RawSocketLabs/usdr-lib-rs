@@ -111,8 +111,6 @@ async fn main() {
 
             // Handle IQ & Freq blocks with proper yielding
             Some((iq_block, freq_block)) = process_rx.recv(), if ctx.process.is_processing() => {
-                // freq_block.squelch(ctx.process.squelch);
-
                 // Process data (lightweight operations)
                 let peak_detection_criteria_met = ctx.current.update(iq_block, freq_block, &ctx.process);
 
@@ -123,14 +121,14 @@ async fn main() {
                     // Do peak detection (CPU-intensive but necessary)
                     ctx.current.detect_peaks(&ctx.process, ctx.scan.current());
 
-                    // YIELD POINT: Let client tasks run after peak detection
-                    tokio::task::yield_now().await;
-
                     // Send peaks and continue processing
                     let peaks_msg = External::Peaks(ctx.current.peaks.clone());
                     let _ = external_tx.send(peaks_msg);
 
-                    if ctx.current.peaks.is_empty() ||
+                    // YIELD POINT: Let client tasks run after peak detection
+                    tokio::task::yield_now().await;
+
+                    if (ctx.current.peaks.is_empty() && ctx.current.collected_iq.len() >= ctx.process.num_required_for_evaluation) ||
                        (ctx.scan.mode == ScanMode::SweepThenProcess &&
                         (ctx.scan.cycles() < ctx.process.scan_cycles_required)) {
                         ctx.next();
@@ -152,7 +150,7 @@ async fn main() {
 
                     let peaks_to_process = std::mem::take(&mut ctx.current.peaks);
 
-                    tokio::task::spawn(async move {
+                    // tokio::task::spawn(async move {
                         let process_ctx = ProcessContext::new(
                             current,
                             rate,
@@ -169,7 +167,7 @@ async fn main() {
 
                         // Send the metadata result back to main loop
                         let _ = internal_tx.send(Internal::BlockMetadata((metadata, processed_peaks))).await;
-                    });
+                    // });
                     ctx.next();
                 }
             },

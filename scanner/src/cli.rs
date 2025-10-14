@@ -49,6 +49,10 @@ pub struct Cli {
     #[clap(long, default_value = "6")]
     pub max_number_of_bursts: usize,
 
+    /// Min number of bursts required to recover when processing peaks for metadata
+    #[clap(long, default_value = "2")]
+    pub min_number_of_bursts: usize,
+
     /// Number of blocks required for processing metadata
     #[clap(long)]
     pub scans_before_processing: Option<usize>,

@@ -28,11 +28,17 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('w') | KeyCode::Char('W') => {
             app.scroll_table_up();
         }
-        KeyCode::Char('a') | KeyCode::Char('A') => {
+        KeyCode::Char('a') => {
             app.squelch_tx.try_send((app.squelch - 1.0).max(-100.0)).unwrap();
         }
-        KeyCode::Char('d') | KeyCode::Char('D') => {
+        KeyCode::Char('d')=> {
             app.squelch_tx.try_send((app.squelch + 1.0).min(100.0)).unwrap();
+        }
+        KeyCode::Char('A') => {
+            app.squelch_tx.try_send((app.squelch - 10.0).max(-100.0)).unwrap();
+        }
+        KeyCode::Char('D')=> {
+            app.squelch_tx.try_send((app.squelch + 10.0).min(100.0)).unwrap();
         }
         _ => {}
     };
