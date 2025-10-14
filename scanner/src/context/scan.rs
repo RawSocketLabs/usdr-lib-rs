@@ -1,9 +1,9 @@
 use crate::cli::Cli;
 use crate::device::DevMsg;
-use sdr::{Freq, FreqRange};
 use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
+use sdr::sample::{Freq, FreqRange};
 use tokio::sync::mpsc::Sender;
 
 pub struct ScanContext {
@@ -48,6 +48,7 @@ pub(crate) struct ScanManager {
 }
 
 pub enum FreqRangeType {
+    #[allow(dead_code)]
     Fixed(usize),
     Ranges(Vec<FreqRange>),
 }

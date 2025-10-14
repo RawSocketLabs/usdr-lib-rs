@@ -1,7 +1,7 @@
 use std::time::Duration;
 // VENDOR CRATES
-use sdr::{Device, Freq, SdrControl};
-
+use sdr::{Device, SdrControl};
+use sdr::sample::Freq;
 // LOCAL CRATE
 use crate::device::traits::Sample;
 use crate::device::{DevChannels, DevMsg, SampleContext};

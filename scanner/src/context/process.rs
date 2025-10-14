@@ -1,13 +1,7 @@
-use sdr::{FreqRange, SAMPLES_PER_SYMBOL_4800};
-use std::str::FromStr;
-use sdr::dmr::BITS_PER_BURST;
 use crate::cli::Cli;
-use crate::process::AUDIO_RATE;
 use tracing::info;
 
 pub(crate) const DEFAULT_SCAN_CYCLES_REQUIRED_FOR_METADATA: usize = 1;
-pub(crate) const DEFAULT_OBSERVATION_TIME_MS: u32 = 20;
-pub(crate) const DEFAULT_METADATA_TIME_MS: u32 = 100;
 
 /// Convert milliseconds to number of FFT blocks based on sample rate and FFT size
 fn ms_to_blocks(time_ms: u32, sample_rate: u32, fft_size: usize) -> usize {
@@ -19,12 +13,10 @@ pub struct ProcessParameters {
     process: bool,
     pub bandwidth: u32,
     pub lag: usize,
-    pub fft_size: usize,
     pub scan_cycles_required: usize,
     pub num_required_for_average: usize,
     pub num_required_for_evaluation: usize,
     pub num_required_for_metadata: usize,
-    freq_ranges_to_ignore: Vec<FreqRange>,
     is_file: bool,
     pub squelch: f32,
 }
@@ -54,7 +46,6 @@ impl ProcessParameters {
         
         Self {
             process: true,
-            fft_size: args.fft_size,
             bandwidth: args.bandwidth,
             lag: (args.bandwidth / (args.rate / 4 / args.fft_size as u32)) as usize,
             scan_cycles_required: args
@@ -63,16 +54,6 @@ impl ProcessParameters {
             num_required_for_average: observation_blocks,
             num_required_for_evaluation,
             num_required_for_metadata,
-            freq_ranges_to_ignore: args
-                .freq_ranges_to_ignore
-                .clone()
-                .map(|ranges| {
-                    ranges
-                        .iter()
-                        .map(|range| FreqRange::from_str(range).unwrap())
-                        .collect()
-                })
-                .unwrap_or_default(),
             is_file: args.file.is_some(),
             squelch: args.squelch,
         }

@@ -1,6 +1,6 @@
 use shared::DmrMetadata;
 use bincode::{Decode, Encode};
-use sdr::Peaks;
+use sdr::sample::Peaks;
 
 #[derive(Decode, Encode)]
 pub enum Internal {

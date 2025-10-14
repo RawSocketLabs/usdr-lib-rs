@@ -1,11 +1,10 @@
 use shared::DmrMetadata;
 // THIRD PARTY CRATES
 use rayon::prelude::*;
+use sdr::{DmrProcessor, IQBlock};
+use sdr::sample::{FreqSample, IQSample, Peaks};
 // VENDOR CRATES
 use crate::process::{ScanDmrMetadataExt, ProcessContext, SignalPreProcessor};
-use sdr::{FreqSample, IQBlock, IQSample, Peaks};
-use sdr::dmr::DmrProcessor;
-use crate::io::Internal;
 
 pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: Peaks) -> Vec<DmrMetadata>{
     // TODO: There has to be a better way...

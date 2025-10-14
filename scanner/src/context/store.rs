@@ -1,6 +1,6 @@
 // STD LIB
 use std::collections::{BTreeMap};
-use sdr::Freq;
+use sdr::sample::Freq;
 // THIRD PARTY
 use shared::DmrMetadata;
 use crate::process::DMR_BANDWIDTH;

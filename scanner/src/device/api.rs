@@ -1,7 +1,8 @@
 // STD LIB
 use std::thread;
-use std::time::Duration;
-
+use sdr::{Device, FreqBlock, IQBlock, RawFile, Rtl, WavFile};
+use sdr::dsp::{Hann, Window};
+use sdr::sample::Freq;
 // THIRD PARTY CRATES
 use tokio::sync::{
     mpsc::{Receiver, Sender},
@@ -10,10 +11,6 @@ use tokio::sync::{
 use tracing::info;
 
 // VENDOR CRATES
-use sdr::{Device, Freq, FreqBlock, Hann, IQBlock, Window};
-use sdr::file::raw::RawFile;
-use sdr::file::wav::WavFile;
-use sdr::tuner::rtl::Rtl;
 // LOCAL CRATE
 use crate::io::Internal;
 use crate::{
@@ -37,7 +34,6 @@ pub fn start(
         freq,
         args.fft_size,
         Window::Hann(Hann::new(args.fft_size)),
-        Duration::from_millis(args.sleep_ms),
     );
     let channels = DevChannels::new(dev_rx, internal_tx, process_tx, realtime_tx, client_count);
     let (file, rate, raw, throttle) = (args.file.clone(), args.rate, args.raw, !args.no_throttle);

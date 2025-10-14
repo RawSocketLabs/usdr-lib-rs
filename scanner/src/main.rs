@@ -15,7 +15,7 @@ use tracing::{debug, info, trace};
 // LOCAL CRATES
 use crate::context::ScanMode;
 use crate::io::{IOManager, Internal};
-use crate::process::{ProcessContext, ProcessType, process_peaks};
+use crate::process::{ProcessContext, process_peaks};
 use crate::{cli::Cli, context::Context, device::DevMsg};
 
 #[tokio::main]
@@ -154,7 +154,6 @@ async fn main() {
                         let process_ctx = ProcessContext::new(
                             current,
                             rate,
-                            ProcessType::PreProcess
                         );
 
                         // Save off the peaks to report which peaks have been processed.

@@ -1,7 +1,7 @@
-use sdr::{AverageFreqBlock, Freq, FreqBlock, FreqSample, IQBlock, Peak, PeakParameters, Peaks};
+use sdr::{FreqBlock, IQBlock};
+use sdr::sample::{AverageFreqBlock, Freq, PeakParameters, Peaks};
 use smoothed_z_score::PeaksDetector;
 use crate::context::ProcessParameters;
-use crate::process::DMR_BANDWIDTH;
 
 // // TODO: There is something here about how it should impact center freq tracking.
 // pub struct ObservedPeaks {
@@ -87,21 +87,6 @@ impl CurrentState {
         for processed_peak in processed_peaks {
             self.processing_peaks.retain(|peak| peak.sample.freq != processed_peak.sample.freq);
         }
-    }
-
-    // The peaks returned here are peaks for evaluation purposes they do n
-    pub fn peaks_to_process(&mut self) -> Peaks {
-        // Capture new frequencies that should be processed
-        let mut peaks_to_process = Vec::new();
-        for peak in self.peaks.drain(..) {
-            if self.processing_peaks.iter().any(|processing_peak| processing_peak.sample.freq.within_band(peak.sample.freq, DMR_BANDWIDTH)) {
-                continue;
-            } else {
-                self.processing_peaks.push(peak);
-                peaks_to_process.push(peak);
-            }
-        }
-        peaks_to_process
     }
 
     pub fn update(&mut self, iq_block: IQBlock, freq_block: FreqBlock, params: &ProcessParameters) -> bool {

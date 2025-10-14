@@ -1,9 +1,10 @@
-pub use sdr::{FreqBlock, Peaks, FreqSample};
+pub use sdr::{FreqBlock};
 use std::collections::{HashSet, BTreeMap};
 use std::time::SystemTime;
 use bincode::{Decode, Encode};
-use sdr::dmr::{FeatureSetID, SlotDataType, SyncPattern};
-use sdr::Freq;
+use sdr::decode::dmr::burst::{FeatureSetID, SlotDataType};
+pub use sdr::sample::{Freq, Peaks};
+use sdr::SyncPattern;
 
 #[derive(Encode, Decode, Clone, Debug)]
 pub enum External {

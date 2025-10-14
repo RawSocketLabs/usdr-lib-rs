@@ -1,7 +1,7 @@
 use std::sync::Arc;
-use std::time::Duration;
 use rustfft::{Fft, FftPlanner};
-use sdr::{Freq, Window};
+use sdr::dsp::Window;
+use sdr::sample::Freq;
 
 /// Parameters for sampling, including sample rate, frequency, and FFT size.
 pub struct SampleContext {
@@ -10,8 +10,6 @@ pub struct SampleContext {
     pub window: Window,
     pub fft_size: usize,
     pub fft: Arc<dyn Fft<f32>>,
-    pub update_sleep_time: Duration,
-    pub clients_connected: bool,
 }
 
 impl SampleContext {
@@ -20,7 +18,6 @@ impl SampleContext {
         freq: Freq,
         fft_size: usize,
         window: Window,
-        update_sleep_time: Duration,
     ) -> Self {
         // Initialize the FFT
         let fft = FftPlanner::new().plan_fft_forward(fft_size);
@@ -31,9 +28,7 @@ impl SampleContext {
             rate,
             window,
             fft_size,
-            update_sleep_time,
             freq,
-            clients_connected: false,
         }
     }
 }
