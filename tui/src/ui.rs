@@ -13,7 +13,7 @@ use std::collections::BTreeSet;
 use chrono::{DateTime, Utc};
 use ratatui::text::Text;
 
-const INFO_TEXT: &str = "(Esc) or (q) quit | (↑ ↓ ← →) adjust FFT display | (w) scroll up | (s) scroll down";
+const INFO_TEXT: &str = "(Esc) or (q) quit | (↑ ↓ ← →) adjust FFT display | (w) scroll up | (s) scroll down | (a/A) decrease squelch | (d/D) increase squelch";
 const DARK_DARK_GRAY: Color = Color::Rgb(10, 10, 10);
 const ROW_BACKGROUND_1: Color = Color::Rgb(30, 30, 30);
 const ROW_BACKGROUND_2: Color = Color::Rgb(20, 20, 20);
