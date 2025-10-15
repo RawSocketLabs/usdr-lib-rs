@@ -66,7 +66,6 @@ pub async fn handle_client(
             _ = realtime_rx.changed(), if connection_type == ConnectionType::Display => {
                 let freq_block = realtime_rx.borrow().clone();
                 let realtime_msg = External::Realtime(freq_block);
-                trace!("Client {} received realtime data", client_id);
                 if let Err(e) = send_to_client(&mut stream, &realtime_msg).await {
                     error!("Failed to send realtime data to client {}: {}", client_id, e);
                     handle_client_disconnect(client_id, &client_count);
@@ -78,7 +77,6 @@ pub async fn handle_client(
             result = external_rx.recv() => {
                 match result {
                     Ok(msg) => {
-                        trace!("Client {} received external message: {:?}", client_id, msg);
                         if let Err(e) = send_to_client(&mut stream, &msg).await {
                             error!("Failed to send to client {}: {}", client_id, e);
                             handle_client_disconnect(client_id, &client_count);
@@ -129,8 +127,7 @@ pub async fn send_to_client(stream: &mut UnixStream, msg: &External) -> Result<(
         .with_fixed_int_encoding();
     
     let serialized = bincode::encode_to_vec(msg, config)?;
-    trace!("Sending to client message: {:?}", msg);
-    
+
     // Write length prefix
     stream.write_u32(serialized.len() as u32).await?;
     // Write data

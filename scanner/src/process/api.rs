@@ -3,6 +3,7 @@ use shared::DmrMetadata;
 use rayon::prelude::*;
 use sdr::{DmrProcessor, IQBlock};
 use sdr::sample::{FreqSample, IQSample, Peaks};
+use tracing::trace;
 // VENDOR CRATES
 use crate::process::{ScanDmrMetadataExt, ProcessContext, SignalPreProcessor};
 
@@ -29,6 +30,7 @@ pub fn process_peaks(ctx: ProcessContext, iq_blocks: Vec<IQBlock>, peaks: Peaks)
 
             let mut recovered_bursts = false;
             dmr_processor.get_bursts().into_iter().for_each(|burst| {
+                trace!("{} MHz Recovered burst: {:?}", peak.freq.as_f64() / 1e6, burst);
                 recovered_bursts = true;
                 metadata.update_from_burst(burst);
             });
