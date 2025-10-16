@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use std::sync::Arc;
 use rustfft::{Fft, FftPlanner};
 use sdr::dsp::Window;

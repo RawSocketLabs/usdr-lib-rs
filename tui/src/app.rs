@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use shared::{DisplayInfo, DmrMetadata, FreqBlock, Peaks};
 use std::collections::{BTreeMap};
 use tokio::sync::{mpsc, watch};

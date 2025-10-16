@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use shared::DmrMetadata;
 // THIRD PARTY CRATES
 use rayon::prelude::*;

@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use std::{io, panic};
 use std::io::Error;
 use ratatui::crossterm::{execute, terminal};

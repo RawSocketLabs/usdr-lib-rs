@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 mod api;
 mod msg;
 mod sample;

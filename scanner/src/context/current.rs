@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use sdr::{FreqBlock, IQBlock};
 use sdr::sample::{AverageFreqBlock, Freq, PeakParameters, Peaks};
 use smoothed_z_score::PeaksDetector;

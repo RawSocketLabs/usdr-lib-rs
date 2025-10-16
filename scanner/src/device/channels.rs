@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use sdr::{FreqBlock, IQBlock};
 use std::sync::{Arc, atomic::AtomicUsize};
 use tokio::sync::{

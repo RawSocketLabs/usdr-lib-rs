@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use tokio::sync::{broadcast, mpsc, watch};
 use tokio::net::UnixStream;
 use tokio::io::{AsyncWriteExt, AsyncReadExt};

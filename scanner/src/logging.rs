@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use std::path::Path;
 use tracing_subscriber::{
     layer::SubscriberExt,

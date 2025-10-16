@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 pub use sdr::{FreqBlock};
 use std::collections::{HashSet, BTreeMap};
 use std::time::SystemTime;

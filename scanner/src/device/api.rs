@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 // STD LIB
 use std::thread;
 use sdr::{Device, FreqBlock, IQBlock, RawFile, Rtl, WavFile};

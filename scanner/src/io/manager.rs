@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use tokio::sync::{mpsc::Sender, broadcast, watch};
 use tokio::net::UnixListener;
 use std::sync::{Arc, atomic::AtomicUsize};

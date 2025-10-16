@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use crate::cli::Cli;
 use crate::device::DevMsg;
 use std::str::FromStr;

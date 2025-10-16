@@ -1,3 +1,6 @@
+// Metrea LLC Intellectual Property
+// Originally developed by Raw Socket Labs LLC
+
 use crate::app::App;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Line, Span};
