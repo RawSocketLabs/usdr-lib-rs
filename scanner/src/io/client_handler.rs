@@ -7,7 +7,7 @@ use tokio::io::{AsyncWriteExt, AsyncReadExt};
 use tokio::time::Duration;
 use shared::{External, ConnectionType, FreqBlock};
 use crate::io::Internal;
-use tracing::{info, error, warn, debug, trace};
+use tracing::{info, error, warn, debug};
 
 // Helper function to decrement client count and log disconnection
 fn handle_client_disconnect(client_id: u64, client_count: &std::sync::Arc<std::sync::atomic::AtomicUsize>) {
