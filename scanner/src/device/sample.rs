@@ -79,6 +79,8 @@ fn send_freq_and_iq<T: SdrControl>(
             }
             
             // Always send to process channel for main loop processing
+            // TODO: This is dropping blocks on the floor - decide if we want to change this behavior
+            //  Maybe we chunk (128 or 256 chunks)
             let _ = channels.process_tx.try_send((iq_block_raw, freq_block));
         } else {
             // println!("Failed to compute freq_block");

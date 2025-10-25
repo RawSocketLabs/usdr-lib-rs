@@ -49,6 +49,7 @@ pub struct DmrMetadata {
     pub rssi: f32,
     pub observation_time: SystemTime,
     pub syncs: HashSet<SyncPattern>,
+    pub sync_count: usize,
     pub slot_data_types: HashSet<SlotDataType>,
     pub color_codes: HashSet<u8>,
     pub messages: HashSet<Message>,
@@ -94,6 +95,7 @@ impl DmrMetadata {
             color_codes: HashSet::new(),
             messages: HashSet::new(),
             slot_data_types: HashSet::new(),
+            sync_count: 0,
         }
     }
 }

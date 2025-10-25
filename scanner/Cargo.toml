@@ -23,5 +23,5 @@ tracing-appender = "0.2"
 
 
 [profile.release]
-opt_level = 3
+opt-level = 3
 lto = true

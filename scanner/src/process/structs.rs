@@ -32,7 +32,7 @@ impl SignalPreProcessor {
         let mut g = MTGraph::new();
         let (src, prev) = rustradio::blocks::VectorSource::new(data.inner());
 
-        let taps = low_pass_complex(rate as f32, DMR_BANDWIDTH as f32, 2000.0, &WindowType::Hamming);
+        let taps = low_pass_complex(rate as f32, DMR_BANDWIDTH as f32, DMR_BANDWIDTH as f32, &WindowType::Hamming);
 
         let (lowpass, prev) = rustradio::fir::FirFilter::builder(&taps)
             .deci(decimation_factor)
@@ -90,6 +90,7 @@ impl ScanDmrMetadataExt for DmrMetadata {
         match burst {
             Burst::Data(data_burst) => {
                 self.syncs.insert(data_burst.pattern);
+                self.sync_count += 1;
                 self.color_codes.insert(data_burst.slot_type.color_code().value());
                 self.slot_data_types.insert(data_burst.slot_type.data_type());
                 match data_burst.info {
@@ -129,6 +130,7 @@ impl ScanDmrMetadataExt for DmrMetadata {
             }
             Burst::Voice(voice_burst) => {
                 self.syncs.insert(voice_burst.pattern);
+                self.sync_count += 1;
             }
             _ => {}
         }

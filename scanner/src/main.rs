@@ -147,29 +147,24 @@ async fn main() {
                     let iq_blocks = std::mem::take(&mut ctx.current.collected_iq);
                     let internal_tx = internal_tx.clone();
                     ctx.current.reduce_peaks(&ctx.process);
-                    // println!("REDUCE {:?}", ctx.current.peaks);
-                    // let peaks_to_process = ctx.current.peaks_to_process();
-                    // println!("TO PROCESS {:?}", peaks_to_process);
 
                     let peaks_to_process = std::mem::take(&mut ctx.current.peaks);
 
-                    // tokio::task::spawn(async move {
-                        let process_ctx = ProcessContext::new(
-                            current,
-                            rate,
-                        );
+                    let process_ctx = ProcessContext::new(
+                        current,
+                        rate,
+                    );
 
-                        // Save off the peaks to report which peaks have been processed.
-                        let processed_peaks = peaks_to_process.clone();
+                    // Save off the peaks to report which peaks have been processed.
+                    let processed_peaks = peaks_to_process.clone();
 
-                        // Move CPU-intensive process_peaks to blocking thread
-                        let metadata = tokio::task::spawn_blocking(move || {
-                            process_peaks(process_ctx, iq_blocks, peaks_to_process)
-                        }).await.unwrap();
+                    // Move CPU-intensive process_peaks to blocking thread
+                    let metadata = tokio::task::spawn_blocking(move || {
+                        process_peaks(process_ctx.sample_rate, *process_ctx.center_freq, iq_blocks, peaks_to_process)
+                    }).await.unwrap();
 
-                        // Send the metadata result back to main loop
-                        let _ = internal_tx.send(Internal::BlockMetadata((metadata, processed_peaks))).await;
-                    // });
+                    // Send the metadata result back to main loop
+                    let _ = internal_tx.send(Internal::BlockMetadata((metadata, processed_peaks))).await;
                     ctx.next();
                 }
             },
