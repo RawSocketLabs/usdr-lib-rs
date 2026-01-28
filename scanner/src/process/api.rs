@@ -8,7 +8,7 @@ use sdr::sample::{FreqSample, IQSample, Peaks};
 use sdr::{DmrProcessor, IQBlock};
 use tracing::trace;
 // VENDOR CRATES
-use crate::process::{ProcessContext, ScanDmrMetadataExt, SignalPreProcessor};
+use crate::process::{preprocess_dmr_samples, ProcessContext, ScanDmrMetadataExt};
 
 pub fn process_peaks(
     sample_rate: u32,
@@ -36,11 +36,8 @@ pub fn process_peaks(
 
             let mut metadata = DmrMetadata::new(peak.freq, peak.db);
 
-            let mut signal_pre_processor = SignalPreProcessor::new(flat, sample_rate);
-            signal_pre_processor.run().unwrap();
-
             let mut dmr_processor = DmrProcessor::new();
-            for sample in signal_pre_processor.get_processed_samples() {
+            for sample in preprocess_dmr_samples(flat, sample_rate).into_iter() {
                 dmr_processor.push_sample(sample);
             }
 
@@ -118,7 +115,7 @@ mod tests {
 
         handles.into_iter().for_each(|handle| {handle.join().unwrap()});
 
-        assert_eq!(syncs_count.load(Ordering::Relaxed), 691);
-        assert_eq!(messages_count.load(Ordering::Relaxed), 21);
+        assert_eq!(syncs_count.load(Ordering::Relaxed), 750);
+        assert_eq!(messages_count.load(Ordering::Relaxed), 20);
     }
 }

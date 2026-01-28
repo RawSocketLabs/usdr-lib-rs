@@ -3,7 +3,7 @@
 
 // STD LIB
 use std::thread;
-use sdr::{Device, FreqBlock, IQBlock, RawFile, Rtl, WavFile};
+use sdr::{Device, FreqBlock, IQBlock, RawFile, Rtl, WavFile, BladeRF};
 use sdr::dsp::{Hann, Window};
 use sdr::sample::Freq;
 // THIRD PARTY CRATES
@@ -43,10 +43,9 @@ pub fn start(
 
     thread::spawn(move || match file {
         None => {
-            info!("Opening RTL-SDR device with rate: {}", rate);
-            Device::<Rtl>::new(rate)
-                .expect("Failed to open the RTL-SDR")
-                .sample(channels, ctx)
+            Device::new_auto(rate)
+                .expect("Failed to open an SDR device")
+                .sample(channels, ctx);
         },
         Some(path) => {
             info!("Opening file device: {} (raw: {}, throttle: {})", path, raw, throttle);
