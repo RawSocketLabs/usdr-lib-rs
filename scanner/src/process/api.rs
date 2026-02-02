@@ -8,7 +8,7 @@ use sdr::sample::{FreqSample, IQSample, Peaks};
 use sdr::{DmrProcessor, IQBlock};
 use tracing::trace;
 // VENDOR CRATES
-use crate::process::{preprocess_dmr_samples, ProcessContext, ScanDmrMetadataExt};
+use crate::process::{preprocess_dmr_samples, ScanDmrMetadataExt};
 
 pub fn process_peaks(
     sample_rate: u32,

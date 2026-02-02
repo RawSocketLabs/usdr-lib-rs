@@ -13,12 +13,16 @@ shared = {path = "../shared"}
 # Production setup sdr = {git = }
 # Dev setup
 sdr = { path =  "../../libsdr"}
-
 bincode = "2.0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
 tracing-appender = "0.2"
 
+[features]
+default = ["rtlsdr"]
+usdr = ["sdr/usdr"]
+bladerf = ["sdr/bladerf"]
+rtlsdr = ["sdr/rtlsdr"]
 
 [profile.release]
 opt-level = 3
