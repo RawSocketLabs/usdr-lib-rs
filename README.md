@@ -27,11 +27,18 @@ This is a Cargo workspace containing three crates:
 
 ## Prerequisites
 
-### General Requirements
+### Source Code Layout
 
-- Rust toolchain (edition 2024)
-- Cargo package manager
-- `libsdr` library (see device-specific instructions below)
+Shrike depends on the `libsdr` library, which must be cloned adjacent to the Shrike source directory. If building with USDR support, the `usdr-lib-rs` library is also required.
+
+Your workspace directory should be structured as follows:
+
+```
+workspace/
+├── shrike/
+├── libsdr/
+└── usdr-lib-rs/     # Required only for USDR support
+```
 
 ### Device-Specific Libraries
 
