@@ -29,7 +29,7 @@ This is a Cargo workspace containing three crates:
 
 ### Source Code Layout
 
-Shrike depends on the `libsdr` library, which must be cloned adjacent to the Shrike source directory. If building with USDR support, the `usdr-lib-rs` library is also required.
+Shrike depends on the `libsdr` library, which must be cloned adjacent to the Shrike source directory.
 
 Your workspace directory should be structured as follows:
 
@@ -37,7 +37,6 @@ Your workspace directory should be structured as follows:
 workspace/
 ├── shrike/
 ├── libsdr/
-└── usdr-lib-rs/     # Required only for USDR support
 ```
 
 ### Device-Specific Libraries
