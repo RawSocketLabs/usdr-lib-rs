@@ -1,0 +1,45 @@
+stages:
+  - lint
+  - test
+  - build
+
+image: ghcr.io/rawsocketlabs/libsdr-cross-builder:stable
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .cargo/
+    - target/
+
+before_script:
+  - rustc --version
+  - cargo --version
+
+clippy:
+  stage: lint
+  script:
+    - rustup component add clippy
+    - cargo clippy --all-targets --all-features -- -D warnings
+  allow_failure: true
+
+fmt:
+  stage: lint
+  script:
+    - rustup component add rustfmt
+    - cargo fmt -- --check
+  allow_failure: true
+
+test:
+  stage: test
+  script:
+    - cargo test --verbose --all
+
+build:
+  stage: build
+  script:
+    - cargo build --release --features "usdr,bladerf,rtlsdr" --verbose --all
+  artifacts:
+    paths:
+      - target/
+
+
