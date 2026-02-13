@@ -69,7 +69,7 @@ impl ScanManager {
                     .iter()
                     .map(|s| FreqRange::from_str(s).unwrap())
                     .collect();
-                if ranges.len() == 0 {
+                if ranges.is_empty() {
                     return Err(());
                 }
                 let current = ranges.first().unwrap().start;

@@ -38,7 +38,7 @@ use smoothed_z_score::PeaksDetector;
 //     }
 //
 //     // Check to see if the passed frequency should update an existing center freq or be processed as a new center freq
-//     // TODO: This probably relates to a confidence interval based on how many observations have occured ect.
+//     // TODO: This probably relates to a confidence interval based on how many observations have occurred ect.
 //     // TODO: There is probably an additional update step where this should store the last 5 samples and get metadata for it
 //     // TODO: From there we can leverage the metadata and the current info to figure out if there are two close frequencies
 //     // TODO: Start simple and just go within band portion.
@@ -99,7 +99,11 @@ impl CurrentState {
         params: &ProcessParameters,
     ) -> bool {
         self.collected_iq.push(iq_block);
-        if self.collected_iq.len() % params.num_required_for_average != 0 {
+        if !self
+            .collected_iq
+            .len()
+            .is_multiple_of(params.num_required_for_average)
+        {
             self.update_average(freq_block);
             false
         } else {

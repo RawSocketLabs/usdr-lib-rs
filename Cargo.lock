@@ -227,8 +227,7 @@ checksum = "812e12b5285cc515a9c72a5c1d3b6d46a19dac5acfef5265968c166106e31dd3"
 [[package]]
 name = "bladerf"
 version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d319080c221d12ec8b6447ef627e9ef97e162353faef8f7c96ff423780a8ee4"
+source = "git+https://github.com/RawSocketLabs/rust-bladerf.git#6964074858813f707c413eadb14482577d3eaea5"
 dependencies = [
  "bladerf-sys",
  "libc 0.1.12",
@@ -1867,6 +1866,7 @@ checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
 [[package]]
 name = "usdr"
 version = "0.1.0"
+source = "git+https://github.com/RawSocketLabs/usdr-lib-rs.git#eee84e49f94f3ae264c7af474d94bb0163dc4ea1"
 dependencies = [
  "cxx",
  "cxx-build",

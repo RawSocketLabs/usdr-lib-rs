@@ -232,17 +232,16 @@ pub fn render_footer(frame: &mut Frame, area: Rect) {
 }
 
 fn generate_table_rows(app: &'_ mut App) -> Vec<Row<'_>> {
-    let rows = app
-        .current_metadata
+    app.current_metadata
         .iter()
         .enumerate()
         .map(|(index, (freq, metadata))| {
             let fids: Vec<String> = metadata
                 .messages
                 .iter()
-                .filter_map(|message| match message {
-                    Message::GroupVoice(m) => Some(format!("{:?}", m.fid)),
-                    Message::CSBK(m) => Some(format!("{:?}", m.fid)),
+                .map(|message| match message {
+                    Message::GroupVoice(m) => format!("{:?}", m.fid),
+                    Message::CSBK(m) => format!("{:?}", m.fid),
                 })
                 .collect::<BTreeSet<_>>()
                 .into_iter()
@@ -291,7 +290,7 @@ fn generate_table_rows(app: &'_ mut App) -> Vec<Row<'_>> {
             let dtg: DateTime<Utc> = metadata.observation_time.into();
 
             Row::new([
-                Cell::from(format!("\n{}", dtg.format("%Y-%m-%d %H:%M:%S").to_string())),
+                Cell::from(format!("\n{}", dtg.format("%Y-%m-%d %H:%M:%S"))),
                 Cell::from(format!("\n{:.03} MHz\n", *freq as f32 / 1e6)),
                 Cell::from(format!(
                     "\n{}",
@@ -322,15 +321,14 @@ fn generate_table_rows(app: &'_ mut App) -> Vec<Row<'_>> {
             .height(max_items as u16 + 2)
             .style(row_style)
         })
-        .collect::<Vec<Row>>();
-    rows
+        .collect::<Vec<Row>>()
 }
 
 fn calculate_column_widths(app: &mut App, area: Rect) -> Vec<u16> {
     let mut max_widths = [0u16; 7];
 
     for (i, width) in HEADER_LENGTHS.iter().enumerate() {
-        max_widths[i] = *width as u16;
+        max_widths[i] = *width;
     }
 
     for (freq, metadata) in app.current_metadata.iter() {
@@ -360,12 +358,13 @@ fn calculate_column_widths(app: &mut App, area: Rect) -> Vec<u16> {
         let fids_width = metadata
             .messages
             .iter()
-            .filter_map(|message| match message {
+            .map(|message| match message {
                 Message::GroupVoice(m) => Some(format!("{:?}", m.fid).len()),
                 Message::CSBK(m) => Some(format!("{:?}", m.fid).len()),
             })
             .max()
-            .unwrap_or(0) as u16;
+            .unwrap_or(Some(0))
+            .unwrap() as u16;
         max_widths[4] = max_widths[4].max(fids_width);
 
         let tg_width = metadata
@@ -398,7 +397,7 @@ fn calculate_column_widths(app: &mut App, area: Rect) -> Vec<u16> {
     let total_width: u16 = max_widths.iter().sum();
     let available_width = area.width.saturating_sub(3); // Account for borders and scrollbar
 
-    let widths = if total_width > available_width {
+    if total_width > available_width {
         let scale = available_width as f32 / total_width as f32;
         max_widths
             .iter()
@@ -406,6 +405,5 @@ fn calculate_column_widths(app: &mut App, area: Rect) -> Vec<u16> {
             .collect::<Vec<_>>()
     } else {
         max_widths.to_vec()
-    };
-    widths
+    }
 }

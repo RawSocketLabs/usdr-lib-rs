@@ -18,7 +18,7 @@ pub fn init_logging(args: &Cli) -> Result<(), Box<dyn std::error::Error + Send +
 
     // Create environment filter based on CLI argument
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&format!("sdrscanner={}", args.log_level)));
+        .unwrap_or_else(|_| EnvFilter::new(format!("sdrscanner={}", args.log_level)));
 
     // Console layer - human-readable output to stderr
     let console_layer = tracing_subscriber::fmt::layer()

@@ -30,12 +30,11 @@ pub fn preprocess_dmr_samples(data: IQBlock, rate: u32) -> Vec<i16> {
     let processed_samples = polyphase_decimating_fir_complex(data.inner(), taps, decimation);
     let processed_samples = quadrature_demod(processed_samples, gain);
     let processed_samples = rational_resample(processed_samples, AUDIO_RATE, CHANNEL_RATE);
-    let processed_samples = processed_samples
-        .iter()
-        .map(|sample| (sample * i16::MAX as f32) as i16)
-        .collect();
 
     processed_samples
+        .iter()
+        .map(|sample| (sample * i16::MAX as f32) as i16)
+        .collect()
 }
 
 pub trait MetadataGroupVoiceCreator {

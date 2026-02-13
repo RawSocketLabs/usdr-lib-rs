@@ -58,10 +58,7 @@ async fn main() {
     let config = bincode::config::standard()
         .with_big_endian()
         .with_fixed_int_encoding();
-    // eprintln!("TUI connecting to scanner...");
     let mut stream = UnixStream::connect("/tmp/sdrscanner").unwrap();
-    // eprintln!("TUI connected to scanner");
-    // eprintln!("TUI sending connection message...");
     let serialized =
         bincode::encode_to_vec(External::Connection(ConnectionType::Display), config).unwrap();
 
@@ -73,13 +70,12 @@ async fn main() {
     // Write data
     stream.write_all(&serialized).unwrap();
     stream.flush().unwrap();
-    // eprintln!("TUI sent connection message, starting message loop...");
 
     loop {
         // Read length prefix
         use std::io::Read;
         let mut len_buf = [0u8; 4];
-        if let Some(squelch) = squelch_rx.try_recv().ok() {
+        if let Ok(squelch) = squelch_rx.try_recv() {
             let serialized = bincode::encode_to_vec(External::Squelch(squelch), config).unwrap();
             stream
                 .write_all(&(serialized.len() as u32).to_be_bytes())
@@ -90,31 +86,23 @@ async fn main() {
         if stream.read_exact(&mut len_buf).is_ok() {
             let len = u32::from_be_bytes(len_buf) as usize;
             let mut buffer = vec![0u8; len];
-            if stream.read_exact(&mut buffer).is_ok() {
-                if let Ok((message, _)) = bincode::decode_from_slice(&buffer, config) {
-                    // eprintln!("TUI received message: {:?}", message);
-                    match message {
-                        External::Realtime(freq_block) => {
-                            // eprintln!("TUI sending realtime data to display");
-                            current_freq_block_tx.send(freq_block).unwrap();
-                        }
-                        External::Peaks(peaks) => {
-                            peaks_tx.try_send(peaks).unwrap_or_else(|_| {
-                                // eprintln!("Failed to send peaks to TUI - channel full");
-                            });
-                        }
-                        External::Display(display_info) => {
-                            center_freq_tx.try_send(display_info).unwrap_or_else(|_| {
-                                // eprintln!("Failed to send display info to TUI - channel full");
-                            });
-                        }
-                        External::Metadata(metadata) => {
-                            metadata_tx.try_send(metadata).unwrap_or_else(|_| {
-                                // eprintln!("Failed to send metadata to TUI - channel full");
-                            });
-                        }
-                        _ => {}
+            if stream.read_exact(&mut buffer).is_ok()
+                && let Ok((message, _)) = bincode::decode_from_slice(&buffer, config)
+            {
+                match message {
+                    External::Realtime(freq_block) => {
+                        current_freq_block_tx.send(freq_block).unwrap();
                     }
+                    External::Peaks(peaks) => {
+                        peaks_tx.try_send(peaks).unwrap_or(());
+                    }
+                    External::Display(display_info) => {
+                        center_freq_tx.try_send(display_info).unwrap_or(());
+                    }
+                    External::Metadata(metadata) => {
+                        metadata_tx.try_send(metadata).unwrap_or(());
+                    }
+                    _ => {}
                 }
             }
         }

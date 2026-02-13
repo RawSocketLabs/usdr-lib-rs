@@ -63,7 +63,7 @@ impl App {
     }
 
     pub fn scroll_table_down(&mut self) {
-        if self.current_metadata.len() > 0 {
+        if !self.current_metadata.is_empty() {
             self.table_scroll_state =
                 (self.table_scroll_state + 1).min(self.current_metadata.len().saturating_sub(1));
         }

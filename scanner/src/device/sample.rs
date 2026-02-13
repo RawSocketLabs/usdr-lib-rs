@@ -29,9 +29,8 @@ fn handle_message<T: SdrControl>(
     channels: &mut DevChannels,
     ctx: &mut SampleContext,
 ) {
-    match channels.dev_rx.try_recv() {
-        Ok(DevMsg::ChangeFreq(new_freq)) => change_dev_freq(device, channels, ctx, new_freq),
-        _ => {} // Log this weird error case...
+    if let Ok(DevMsg::ChangeFreq(new_freq)) = channels.dev_rx.try_recv() {
+        change_dev_freq(device, channels, ctx, new_freq)
     }
 }
 
