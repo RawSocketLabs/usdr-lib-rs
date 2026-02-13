@@ -12,7 +12,12 @@ pub struct Cli {
     pub file: Option<String>,
 
     /// Center frequency for file playback
-    #[arg(long, conflicts_with = "ranges", default_value = "100000000", help_heading = "Input source")]
+    #[arg(
+        long,
+        conflicts_with = "ranges",
+        default_value = "100000000",
+        help_heading = "Input source"
+    )]
     pub center_frequency: u32,
 
     /// Denote that the input IQ file is raw IQ data and not a WAV file

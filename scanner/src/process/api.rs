@@ -8,7 +8,7 @@ use sdr::sample::{FreqSample, IQSample, Peaks};
 use sdr::{DmrProcessor, IQBlock};
 use tracing::trace;
 // VENDOR CRATES
-use crate::process::{preprocess_dmr_samples, ScanDmrMetadataExt};
+use crate::process::{ScanDmrMetadataExt, preprocess_dmr_samples};
 
 pub fn process_peaks(
     sample_rate: u32,
@@ -64,56 +64,55 @@ pub fn process_peaks(
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use crate::process::process_peaks;
     use sdr::sample::{Freq, FreqSample, IQSample, Peak, Peaks};
     use sdr::{Device, IQBlock, SdrControl, WavFile};
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     #[test]
     fn integration() {
         let mut device = Device::<WavFile>::new("resources/iq.wav", false);
 
-        let data = device.read_raw_iq(device.dev.header.data_header.len as usize).unwrap();
-        let data = data
-            .chunks(4096)
-            .collect::<Vec<&[IQSample]>>();
+        let data = device
+            .read_raw_iq(device.dev.header.data_header.len as usize)
+            .unwrap();
+        let data = data.chunks(4096).collect::<Vec<&[IQSample]>>();
 
         let peaks: Peaks = vec![Peak::new(
             Freq::new(device.dev.header.auxi.center_freq),
             FreqSample::new(145190000, 1.0),
             0,
         )];
-        
+
         let syncs_count = Arc::new(AtomicUsize::new(0));
         let messages_count = Arc::new(AtomicUsize::new(0));
 
-        let handles = data.chunks(90).map(|chunk|
-        {
-            let chunk = chunk
-                .iter()
-                .map(|chunk| IQBlock::from(chunk.to_vec()))
-                .collect::<Vec<IQBlock>>();
-            let peaks = peaks.clone();
-            let sample_rate = device.dev.header.info.sample_rate;
-            let center_freq = device.dev.header.auxi.center_freq;
-            let syncs_count = Arc::clone(&syncs_count);
-            let messages_count = Arc::clone(&messages_count);
-            std::thread::spawn(move || {
-                let metadata = process_peaks(
-                    sample_rate,
-                    center_freq,
-                    chunk,
-                    peaks.clone(),
-                );
-                metadata.iter().for_each(|metadata| {
-                    syncs_count.fetch_add(metadata.sync_count, Ordering::Relaxed);
-                    messages_count.fetch_add(metadata.messages.len(), Ordering::Relaxed);
+        let handles = data
+            .chunks(90)
+            .map(|chunk| {
+                let chunk = chunk
+                    .iter()
+                    .map(|chunk| IQBlock::from(chunk.to_vec()))
+                    .collect::<Vec<IQBlock>>();
+                let peaks = peaks.clone();
+                let sample_rate = device.dev.header.info.sample_rate;
+                let center_freq = device.dev.header.auxi.center_freq;
+                let syncs_count = Arc::clone(&syncs_count);
+                let messages_count = Arc::clone(&messages_count);
+                std::thread::spawn(move || {
+                    let metadata = process_peaks(sample_rate, center_freq, chunk, peaks.clone());
+                    metadata.iter().for_each(|metadata| {
+                        syncs_count.fetch_add(metadata.sync_count, Ordering::Relaxed);
+                        messages_count.fetch_add(metadata.messages.len(), Ordering::Relaxed);
+                    })
                 })
             })
-        }).collect::<Vec<_>>();
+            .collect::<Vec<_>>();
 
-        handles.into_iter().for_each(|handle| {handle.join().unwrap()});
+        handles
+            .into_iter()
+            .for_each(|handle| handle.join().unwrap());
 
         assert_eq!(syncs_count.load(Ordering::Relaxed), 750);
         assert_eq!(messages_count.load(Ordering::Relaxed), 20);

@@ -1,10 +1,10 @@
 // Metrea LLC Intellectual Property
 // Originally developed by Raw Socket Labs LLC
 
-mod msg;
-mod manager;
 mod client_handler;
+mod manager;
+mod msg;
 
-pub use msg::Internal;
-pub use manager::IOManager;
 pub use client_handler::handle_client;
+pub use manager::IOManager;
+pub use msg::Internal;

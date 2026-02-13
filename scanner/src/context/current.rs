@@ -1,10 +1,10 @@
 // Metrea LLC Intellectual Property
 // Originally developed by Raw Socket Labs LLC
 
-use sdr::{FreqBlock, IQBlock};
-use sdr::sample::{AverageFreqBlock, Freq, PeakParameters, Peaks};
-use smoothed_z_score::PeaksDetector;
 use crate::context::ProcessParameters;
+use sdr::sample::{AverageFreqBlock, Freq, PeakParameters, Peaks};
+use sdr::{FreqBlock, IQBlock};
+use smoothed_z_score::PeaksDetector;
 
 // // TODO: There is something here about how it should impact center freq tracking.
 // pub struct ObservedPeaks {
@@ -73,7 +73,6 @@ pub struct CurrentState {
     pub processing_peaks: Peaks,
 
     // pub observed_peaks: Vec<CenterFreq>,
-
     pub collected_iq: Vec<IQBlock>,
     pub average_freq_block: AverageFreqBlock,
 }
@@ -88,11 +87,17 @@ impl CurrentState {
 
     pub fn remove_processed_peaks(&mut self, processed_peaks: Peaks) {
         for processed_peak in processed_peaks {
-            self.processing_peaks.retain(|peak| peak.sample.freq != processed_peak.sample.freq);
+            self.processing_peaks
+                .retain(|peak| peak.sample.freq != processed_peak.sample.freq);
         }
     }
 
-    pub fn update(&mut self, iq_block: IQBlock, freq_block: FreqBlock, params: &ProcessParameters) -> bool {
+    pub fn update(
+        &mut self,
+        iq_block: IQBlock,
+        freq_block: FreqBlock,
+        params: &ProcessParameters,
+    ) -> bool {
         self.collected_iq.push(iq_block);
         if self.collected_iq.len() % params.num_required_for_average != 0 {
             self.update_average(freq_block);
@@ -103,7 +108,7 @@ impl CurrentState {
     }
 
     fn update_average(&mut self, freq_block: FreqBlock) {
-       self.average_freq_block.update(freq_block);
+        self.average_freq_block.update(freq_block);
     }
 
     pub fn detect_peaks(&mut self, params: &ProcessParameters, center_freq: Freq) {
@@ -112,7 +117,10 @@ impl CurrentState {
             detector: PeaksDetector::new(params.lag, 5.0, 0.5),
         };
         self.average_freq_block.block.squelch(params.squelch);
-        self.peaks.extend(self.average_freq_block.get_peaks_with_params(peak_params, center_freq));
+        self.peaks.extend(
+            self.average_freq_block
+                .get_peaks_with_params(peak_params, center_freq),
+        );
         self.average_freq_block.block.clear();
         self.average_freq_block.count = 0;
     }
@@ -125,7 +133,9 @@ impl CurrentState {
         for unfilitered in unfiltered_peaks.into_iter() {
             let mut existing = false;
             for reduced in &self.peaks {
-                if ((*unfilitered.sample.freq as i64) - (*reduced.sample.freq as i64)).abs() <= half_bandwidth {
+                if ((*unfilitered.sample.freq as i64) - (*reduced.sample.freq as i64)).abs()
+                    <= half_bandwidth
+                {
                     // A stronger peak already occupies this band; skip
                     existing = true;
                     break;

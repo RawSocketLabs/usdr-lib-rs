@@ -2,13 +2,13 @@
 // Originally developed by Raw Socket Labs LLC
 
 mod api;
+mod channels;
+mod context;
 mod msg;
 mod sample;
 mod traits;
-mod context;
-mod channels;
 
 pub use api::start;
-pub use msg::*;
 pub use channels::*;
 pub use context::*;
+pub use msg::*;

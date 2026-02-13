@@ -2,9 +2,9 @@
 // Originally developed by Raw Socket Labs LLC
 
 mod api;
-mod structs;
 mod context;
+mod structs;
 
 pub use api::*;
-pub use structs::*;
 pub use context::*;
+pub use structs::*;

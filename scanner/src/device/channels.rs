@@ -1,14 +1,14 @@
 // Metrea LLC Intellectual Property
 // Originally developed by Raw Socket Labs LLC
 
+use crate::device::DevMsg;
+use crate::io::Internal;
 use sdr::{FreqBlock, IQBlock};
 use std::sync::{Arc, atomic::AtomicUsize};
 use tokio::sync::{
     mpsc::{Receiver, Sender},
     watch::Sender as WatchSender,
 };
-use crate::device::DevMsg;
-use crate::io::Internal;
 
 pub struct DevChannels {
     pub dev_rx: Receiver<DevMsg>,

@@ -3,10 +3,10 @@
 
 use crate::cli::Cli;
 use crate::device::DevMsg;
+use sdr::sample::{Freq, FreqRange};
 use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
-use sdr::sample::{Freq, FreqRange};
 use tokio::sync::mpsc::Sender;
 
 pub struct ScanContext {
@@ -95,9 +95,7 @@ impl ScanManager {
 
     pub(crate) fn next(&mut self) {
         match &self.range_type {
-            FreqRangeType::Fixed(_) => {
-                self.cycles_completed += 1
-            },
+            FreqRangeType::Fixed(_) => self.cycles_completed += 1,
             FreqRangeType::Ranges(ranges) => {
                 // Increment the current center frequency
                 if ranges[self.idx].stop >= self.current.as_usize() + self.step_size {

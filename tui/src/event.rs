@@ -10,7 +10,6 @@ use std::{
 use color_eyre::Result;
 use ratatui::crossterm::event::{self, Event as CrosstermEvent, KeyEvent};
 
-
 /// Terminal events.
 #[derive(Clone, Copy, Debug)]
 pub enum Event {
@@ -58,7 +57,7 @@ impl EventHandler {
                             }
                             _ => Ok(()),
                         }
-                            .expect("failed to send terminal event")
+                        .expect("failed to send terminal event")
                     }
 
                     if last_tick.elapsed() >= tick_rate {

@@ -2,7 +2,7 @@
 // Originally developed by Raw Socket Labs LLC
 
 use shared::{DisplayInfo, DmrMetadata, FreqBlock, Peaks};
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 use tokio::sync::{mpsc, watch};
 
 pub struct App {
@@ -54,7 +54,7 @@ impl App {
             should_quit: false,
             current_peaks: None,
             table_scroll_state: 0,
-            squelch: -100.0
+            squelch: -100.0,
         }
     }
 
@@ -64,8 +64,8 @@ impl App {
 
     pub fn scroll_table_down(&mut self) {
         if self.current_metadata.len() > 0 {
-            self.table_scroll_state = (self.table_scroll_state + 1)
-                .min(self.current_metadata.len().saturating_sub(1));
+            self.table_scroll_state =
+                (self.table_scroll_state + 1).min(self.current_metadata.len().saturating_sub(1));
         }
     }
 

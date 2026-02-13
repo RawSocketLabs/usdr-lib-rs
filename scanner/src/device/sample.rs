@@ -3,8 +3,8 @@
 
 use std::time::Duration;
 // VENDOR CRATES
-use sdr::{Device, SdrControl};
 use sdr::sample::Freq;
+use sdr::{Device, SdrControl};
 // LOCAL CRATE
 use crate::device::traits::Sample;
 use crate::device::{DevChannels, DevMsg, SampleContext};
@@ -71,13 +71,15 @@ fn send_freq_and_iq<T: SdrControl>(
         if let Ok(freq_block) = iq_block.compute_freq_block(ctx.rate, &*ctx.fft, ctx.freq) {
             // println!("Computed freq_block with {} samples", freq_block.len());
             // Send realtime data via watch channel if display clients are connected
-            let client_count = channels.client_count.load(std::sync::atomic::Ordering::Relaxed);
+            let client_count = channels
+                .client_count
+                .load(std::sync::atomic::Ordering::Relaxed);
             // println!("Client count: {}", client_count);
             if client_count > 0 {
                 // println!("Sending realtime data to {} clients", client_count);
                 let _ = channels.realtime_tx.send(freq_block.clone());
             }
-            
+
             // Always send to process channel for main loop processing
             // TODO: This is dropping blocks on the floor - decide if we want to change this behavior
             //  Maybe we chunk (128 or 256 chunks)

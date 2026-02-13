@@ -1,10 +1,10 @@
 // Metrea LLC Intellectual Property
 // Originally developed by Raw Socket Labs LLC
 
-use std::sync::Arc;
 use rustfft::{Fft, FftPlanner};
 use sdr::dsp::Window;
 use sdr::sample::Freq;
+use std::sync::Arc;
 
 /// Parameters for sampling, including sample rate, frequency, and FFT size.
 pub struct SampleContext {
@@ -16,12 +16,7 @@ pub struct SampleContext {
 }
 
 impl SampleContext {
-    pub fn new(
-        rate: u32,
-        freq: Freq,
-        fft_size: usize,
-        window: Window,
-    ) -> Self {
+    pub fn new(rate: u32, freq: Freq, fft_size: usize, window: Window) -> Self {
         // Initialize the FFT
         let fft = FftPlanner::new().plan_fft_forward(fft_size);
 

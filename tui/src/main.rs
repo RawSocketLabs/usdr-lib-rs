@@ -62,14 +62,14 @@ async fn main() {
     let mut stream = UnixStream::connect("/tmp/sdrscanner").unwrap();
     // eprintln!("TUI connected to scanner");
     // eprintln!("TUI sending connection message...");
-    let serialized = bincode::encode_to_vec(
-        External::Connection(ConnectionType::Display),
-        config,
-    ).unwrap();
-    
+    let serialized =
+        bincode::encode_to_vec(External::Connection(ConnectionType::Display), config).unwrap();
+
     // Write length prefix
     use std::io::Write;
-    stream.write_all(&(serialized.len() as u32).to_be_bytes()).unwrap();
+    stream
+        .write_all(&(serialized.len() as u32).to_be_bytes())
+        .unwrap();
     // Write data
     stream.write_all(&serialized).unwrap();
     stream.flush().unwrap();
@@ -81,7 +81,9 @@ async fn main() {
         let mut len_buf = [0u8; 4];
         if let Some(squelch) = squelch_rx.try_recv().ok() {
             let serialized = bincode::encode_to_vec(External::Squelch(squelch), config).unwrap();
-            stream.write_all(&(serialized.len() as u32).to_be_bytes()).unwrap();
+            stream
+                .write_all(&(serialized.len() as u32).to_be_bytes())
+                .unwrap();
             stream.write_all(&serialized).unwrap();
             stream.flush().unwrap();
         }

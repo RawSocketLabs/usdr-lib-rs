@@ -1,18 +1,24 @@
 // Metrea LLC Intellectual Property
 // Originally developed by Raw Socket Labs LLC
 
-use tokio::sync::{broadcast, mpsc, watch};
-use tokio::net::UnixStream;
-use tokio::io::{AsyncWriteExt, AsyncReadExt};
-use tokio::time::Duration;
-use shared::{External, ConnectionType, FreqBlock};
 use crate::io::Internal;
-use tracing::{info, error, warn, debug};
+use shared::{ConnectionType, External, FreqBlock};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::UnixStream;
+use tokio::sync::{broadcast, mpsc, watch};
+use tokio::time::Duration;
+use tracing::{debug, error, info, warn};
 
 // Helper function to decrement client count and log disconnection
-fn handle_client_disconnect(client_id: u64, client_count: &std::sync::Arc<std::sync::atomic::AtomicUsize>) {
+fn handle_client_disconnect(
+    client_id: u64,
+    client_count: &std::sync::Arc<std::sync::atomic::AtomicUsize>,
+) {
     let new_count = client_count.fetch_sub(1, std::sync::atomic::Ordering::Relaxed) - 1;
-    info!("Client {} disconnected, client count decremented to {}", client_id, new_count);
+    info!(
+        "Client {} disconnected, client count decremented to {}",
+        client_id, new_count
+    );
 }
 
 pub async fn handle_client(
@@ -24,7 +30,6 @@ pub async fn handle_client(
     internal_tx: mpsc::Sender<Internal>,
     client_count: std::sync::Arc<std::sync::atomic::AtomicUsize>,
 ) {
-
     loop {
         tokio::select! {
             // Handle incoming messages with batching
@@ -52,7 +57,7 @@ pub async fn handle_client(
                     }
                     Err(e) => {
                         // Check if this is a connection error or just a timeout
-                        if e.to_string().contains("Broken pipe") || 
+                        if e.to_string().contains("Broken pipe") ||
                            e.to_string().contains("Connection reset") ||
                            e.to_string().contains("End of file") {
                             handle_client_disconnect(client_id, &client_count);
@@ -96,7 +101,7 @@ pub async fn handle_client(
                     }
                 }
             }
-            
+
             // Periodic yield to ensure fairness
             _ = tokio::time::sleep(Duration::from_millis(20)) => {
                 // Explicit yield to ensure fairness
@@ -106,11 +111,13 @@ pub async fn handle_client(
     }
 }
 
-async fn read_client_message(stream: &mut UnixStream) -> Result<Option<shared::External>, Box<dyn std::error::Error + Send + Sync>> {
+async fn read_client_message(
+    stream: &mut UnixStream,
+) -> Result<Option<shared::External>, Box<dyn std::error::Error + Send + Sync>> {
     let config = bincode::config::standard()
         .with_big_endian()
         .with_fixed_int_encoding();
-        
+
     // Non-blocking read with reasonable timeout
     match tokio::time::timeout(Duration::from_millis(10), stream.read_u32()).await {
         Ok(Ok(len)) => {
@@ -124,11 +131,14 @@ async fn read_client_message(stream: &mut UnixStream) -> Result<Option<shared::E
     }
 }
 
-pub async fn send_to_client(stream: &mut UnixStream, msg: &External) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn send_to_client(
+    stream: &mut UnixStream,
+    msg: &External,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let config = bincode::config::standard()
         .with_big_endian()
         .with_fixed_int_encoding();
-    
+
     let serialized = bincode::encode_to_vec(msg, config)?;
 
     // Write length prefix
@@ -136,6 +146,6 @@ pub async fn send_to_client(stream: &mut UnixStream, msg: &External) -> Result<(
     // Write data
     stream.write_all(&serialized).await?;
     stream.flush().await?;
-    
+
     Ok(())
 }

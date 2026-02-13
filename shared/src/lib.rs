@@ -1,13 +1,13 @@
 // Metrea LLC Intellectual Property
 // Originally developed by Raw Socket Labs LLC
 
-pub use sdr::{FreqBlock};
-use std::collections::{HashSet, BTreeMap};
-use std::time::SystemTime;
 use bincode::{Decode, Encode};
+pub use sdr::FreqBlock;
+use sdr::SyncPattern;
 use sdr::decode::dmr::burst::{FeatureSetID, SlotDataType};
 pub use sdr::sample::{Freq, Peaks};
-use sdr::SyncPattern;
+use std::collections::{BTreeMap, HashSet};
+use std::time::SystemTime;
 
 #[derive(Encode, Decode, Clone, Debug)]
 pub enum External {
@@ -58,7 +58,7 @@ pub struct DmrMetadata {
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Encode, Decode, Ord, PartialOrd)]
 pub enum Message {
     GroupVoice(MetadataGroupVoice),
-    CSBK(MetadataCSBK)
+    CSBK(MetadataCSBK),
 }
 
 #[derive(Hash, PartialEq, Eq, Debug, Clone, Encode, Decode, Ord, PartialOrd)]

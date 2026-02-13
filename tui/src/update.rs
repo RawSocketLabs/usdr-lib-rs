@@ -13,17 +13,33 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
                 app.quit()
             }
         }
-       KeyCode::Up => {
-            app.y_bounds[0] += if app.y_bounds[0] + 10.0 < app.y_bounds[1] {5.0} else {0.0};
+        KeyCode::Up => {
+            app.y_bounds[0] += if app.y_bounds[0] + 10.0 < app.y_bounds[1] {
+                5.0
+            } else {
+                0.0
+            };
         }
-       KeyCode::Down => {
-            app.y_bounds[0] -= if app.y_bounds[0] - 5.0 > -200.0 {5.0} else {0.0};
+        KeyCode::Down => {
+            app.y_bounds[0] -= if app.y_bounds[0] - 5.0 > -200.0 {
+                5.0
+            } else {
+                0.0
+            };
         }
-       KeyCode::Right => {
-            app.y_bounds[1] += if app.y_bounds[1] + 5.0 < 200.0 {5.0} else {0.0};
+        KeyCode::Right => {
+            app.y_bounds[1] += if app.y_bounds[1] + 5.0 < 200.0 {
+                5.0
+            } else {
+                0.0
+            };
         }
-       KeyCode::Left => {
-            app.y_bounds[1] -= if app.y_bounds[1] - 10.0 > app.y_bounds[0] {5.0} else {0.0};
+        KeyCode::Left => {
+            app.y_bounds[1] -= if app.y_bounds[1] - 10.0 > app.y_bounds[0] {
+                5.0
+            } else {
+                0.0
+            };
         }
         KeyCode::Char('s') | KeyCode::Char('S') => {
             app.scroll_table_down();
@@ -32,16 +48,24 @@ pub fn handle_key_event(app: &mut App, key_event: KeyEvent) {
             app.scroll_table_up();
         }
         KeyCode::Char('a') => {
-            app.squelch_tx.try_send((app.squelch - 1.0).max(-100.0)).unwrap();
+            app.squelch_tx
+                .try_send((app.squelch - 1.0).max(-100.0))
+                .unwrap();
         }
-        KeyCode::Char('d')=> {
-            app.squelch_tx.try_send((app.squelch + 1.0).min(100.0)).unwrap();
+        KeyCode::Char('d') => {
+            app.squelch_tx
+                .try_send((app.squelch + 1.0).min(100.0))
+                .unwrap();
         }
         KeyCode::Char('A') => {
-            app.squelch_tx.try_send((app.squelch - 10.0).max(-100.0)).unwrap();
+            app.squelch_tx
+                .try_send((app.squelch - 10.0).max(-100.0))
+                .unwrap();
         }
-        KeyCode::Char('D')=> {
-            app.squelch_tx.try_send((app.squelch + 10.0).min(100.0)).unwrap();
+        KeyCode::Char('D') => {
+            app.squelch_tx
+                .try_send((app.squelch + 10.0).min(100.0))
+                .unwrap();
         }
         _ => {}
     };

@@ -34,8 +34,10 @@ async fn main() {
     }
 
     info!("Starting SDR Scanner");
-    info!("Configuration: rate={}, fft_size={}, scan_mode={}", 
-          args.rate, args.fft_size, args.scan_mode);
+    info!(
+        "Configuration: rate={}, fft_size={}, scan_mode={}",
+        args.rate, args.fft_size, args.scan_mode
+    );
     info!("Frequency ranges: {:?}", args.ranges);
 
     //// Inter-Thread Communication Channels
@@ -76,9 +78,20 @@ async fn main() {
     );
 
     // Start IO manager
-    let initial_display_info = External::Display(DisplayInfo::new(ctx.scan.current(), ctx.scan.rate(), ctx.process.squelch));
+    let initial_display_info = External::Display(DisplayInfo::new(
+        ctx.scan.current(),
+        ctx.scan.rate(),
+        ctx.process.squelch,
+    ));
     info!("Starting IO manager...");
-    io_manager.start(external_tx.clone(), realtime_rx, internal_tx.clone(), initial_display_info).await;
+    io_manager
+        .start(
+            external_tx.clone(),
+            realtime_rx,
+            internal_tx.clone(),
+            initial_display_info,
+        )
+        .await;
     info!("IO manager started");
 
     // Main Loop with proper yielding

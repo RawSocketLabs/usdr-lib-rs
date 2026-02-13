@@ -12,8 +12,8 @@ use tokio::sync::mpsc::Sender;
 
 // LOCAL CRATE
 use crate::Cli;
+use crate::context::{CurrentState, ProcessParameters, ScanContext, ScanMode, StoredInfo};
 use crate::device::DevMsg;
-use crate::context::{CurrentState, StoredInfo, ProcessParameters, ScanContext, ScanMode};
 
 /// Context object to hold state during runtime
 pub(crate) struct Context {
@@ -25,13 +25,12 @@ pub(crate) struct Context {
 
 impl Context {
     pub fn new(args: &Cli, dev_tx: Sender<DevMsg>) -> Result<Self, ()> {
-        Ok(Self{
+        Ok(Self {
             current: CurrentState::default(),
             process: ProcessParameters::new(args),
             scan: ScanContext::new(ScanMode::from_str(&args.scan_mode)?, args, dev_tx)?,
             storage: StoredInfo::default(),
         })
-
     }
 
     /// Advance the context.
@@ -43,7 +42,6 @@ impl Context {
         self.current.clear();
         self.scan.next();
     }
-
 
     //pub fn detect_peaks(&mut self) {
     //    self.current.peaks = find_peak_in_freq_block(
@@ -74,6 +72,4 @@ impl Context {
     //    //    );
     //    //}
     //}
-
 }
-

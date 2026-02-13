@@ -1,22 +1,21 @@
 // Metrea LLC Intellectual Property
 // Originally developed by Raw Socket Labs LLC
 
-use std::{io, panic};
-use std::io::Error;
-use ratatui::crossterm::{execute, terminal};
-use ratatui::crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use ratatui::crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
-use ratatui::layout::{Constraint, Layout, Rect};
 use crate::app::App;
 use crate::event::EventHandler;
 use crate::ui;
+use ratatui::crossterm::event::{DisableMouseCapture, EnableMouseCapture};
+use ratatui::crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
+use ratatui::crossterm::{execute, terminal};
+use ratatui::layout::{Constraint, Layout, Rect};
+use std::io::Error;
+use std::{io, panic};
 
 pub type CrosstermTerminal = ratatui::Terminal<ratatui::backend::CrosstermBackend<io::Stderr>>;
 
 pub struct Tui {
     terminal: CrosstermTerminal,
     pub events: EventHandler,
-
 }
 
 impl Tui {
@@ -45,7 +44,6 @@ impl Tui {
         Ok(())
     }
 
-
     /// [`Draw`] the terminal interface by [`rendering`] the widgets.
     ///
     /// [`Draw`]: tui::Terminal::draw
@@ -57,7 +55,12 @@ impl Tui {
                 .split(frame.area());
             let fft_area = areas[0];
             let metadata_area = areas[1];
-            let footer_area = Rect::new(0, metadata_area.y + metadata_area.height - 3, frame.area().width, 4);
+            let footer_area = Rect::new(
+                0,
+                metadata_area.y + metadata_area.height - 3,
+                frame.area().width,
+                4,
+            );
 
             ui::render_fft_chart(app, frame, fft_area);
             ui::render_metadata_table(app, frame, metadata_area);

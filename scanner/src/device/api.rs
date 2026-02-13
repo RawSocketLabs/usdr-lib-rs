@@ -39,12 +39,7 @@ pub fn start(
         Window::Hann(Hann::new(args.fft_size)),
     );
     let channels = DevChannels::new(dev_rx, internal_tx, process_tx, realtime_tx, client_count);
-    let (file, rate, raw, throttle) = (
-        args.file.clone(),
-        args.rate,
-        args.raw,
-        !args.no_throttle,
-    );
+    let (file, rate, raw, throttle) = (args.file.clone(), args.rate, args.raw, !args.no_throttle);
 
     #[cfg(feature = "usdr")]
     let fft_size = args.fft_size;

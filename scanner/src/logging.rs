@@ -1,14 +1,10 @@
 // Metrea LLC Intellectual Property
 // Originally developed by Raw Socket Labs LLC
 
-use std::path::Path;
-use tracing_subscriber::{
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-    EnvFilter, Layer,
-};
-use tracing_appender::rolling::daily;
 use crate::cli::Cli;
+use std::path::Path;
+use tracing_appender::rolling::daily;
+use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Initialize the tracing subscriber with multiple output layers
 pub fn init_logging(args: &Cli) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -22,9 +18,7 @@ pub fn init_logging(args: &Cli) -> Result<(), Box<dyn std::error::Error + Send +
 
     // Create environment filter based on CLI argument
     let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| {
-            EnvFilter::new(&format!("sdrscanner={}", args.log_level))
-        });
+        .unwrap_or_else(|_| EnvFilter::new(&format!("sdrscanner={}", args.log_level)));
 
     // Console layer - human-readable output to stderr
     let console_layer = tracing_subscriber::fmt::layer()
@@ -67,9 +61,7 @@ pub fn init_logging(args: &Cli) -> Result<(), Box<dyn std::error::Error + Send +
             .init();
     } else {
         // Only console output if file logging is disabled
-        registry
-            .with(console_layer)
-            .init();
+        registry.with(console_layer).init();
     }
 
     tracing::info!("Logging initialized with level: {}", args.log_level);

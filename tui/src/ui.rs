@@ -2,10 +2,15 @@
 // Originally developed by Raw Socket Labs LLC
 
 use crate::app::App;
+use chrono::{DateTime, Utc};
 use ratatui::layout::Rect;
 use ratatui::prelude::{Line, Span};
 use ratatui::symbols::Marker;
-use ratatui::widgets::{Axis, Cell, Chart, Dataset, GraphType, Row, Table, TableState, Scrollbar, ScrollbarState, ScrollbarOrientation};
+use ratatui::text::Text;
+use ratatui::widgets::{
+    Axis, Cell, Chart, Dataset, GraphType, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
+    Table, TableState,
+};
 use ratatui::{
     Frame,
     style::{Color, Style},
@@ -13,8 +18,6 @@ use ratatui::{
 };
 use shared::Message;
 use std::collections::BTreeSet;
-use chrono::{DateTime, Utc};
-use ratatui::text::Text;
 
 const INFO_TEXT: &str = "(Esc) or (q) quit | (↑ ↓ ← →) adjust FFT display | (w) scroll up | (s) scroll down | (a/A) decrease squelch | (d/D) increase squelch";
 const DARK_DARK_GRAY: Color = Color::Rgb(10, 10, 10);
@@ -61,7 +64,16 @@ pub fn render_fft_chart(app: &mut App, frame: &mut Frame, area: Rect) {
 
     let squelch_vec = match app.current_freq_block.len() {
         0 => &[(0., app.squelch as f64), (0., app.squelch as f64)],
-        len => &[(*app.current_freq_block[0].freq as f64 / 1e6, app.squelch as f64), (*app.current_freq_block[len - 1].freq as f64 / 1e6, app.squelch as f64)]
+        len => &[
+            (
+                *app.current_freq_block[0].freq as f64 / 1e6,
+                app.squelch as f64,
+            ),
+            (
+                *app.current_freq_block[len - 1].freq as f64 / 1e6,
+                app.squelch as f64,
+            ),
+        ],
     };
 
     let squelch_line = Dataset::default()
@@ -169,16 +181,12 @@ pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
     let background = Block::default().style(Style::default().bg(DARK_DARK_GRAY));
     frame.render_widget(background, area);
 
-
-    let header = HEADERS.into_iter()
+    let header = HEADERS
+        .into_iter()
         .map(Cell::from)
         .collect::<Row>()
         .height(1)
-        .style(
-            Style::default()
-                .fg(Color::Yellow)
-                .bg(DARK_DARK_GRAY),
-        );
+        .style(Style::default().fg(Color::Yellow).bg(DARK_DARK_GRAY));
 
     let table_scroll_state = app.table_scroll_state;
     let metadata_len = app.current_metadata.len();
@@ -193,8 +201,8 @@ pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
             .map(|width| ratatui::layout::Constraint::Length(*width))
             .collect::<Vec<_>>(),
     )
-        .header(header)
-        .block(Block::default().borders(Borders::ALL));
+    .header(header)
+    .block(Block::default().borders(Borders::ALL));
 
     let mut table_state = TableState::default().with_selected(Some(table_scroll_state));
     frame.render_stateful_widget(table, area, &mut table_state);
@@ -203,27 +211,23 @@ pub fn render_metadata_table(app: &mut App, frame: &mut Frame, area: Rect) {
         .begin_symbol(Some("↑"))
         .end_symbol(Some("↓"));
 
-    let mut scrollbar_state = ScrollbarState::new(metadata_len)
-        .position(table_scroll_state);
+    let mut scrollbar_state = ScrollbarState::new(metadata_len).position(table_scroll_state);
 
     frame.render_stateful_widget(
         scrollbar,
-        area.inner(ratatui::layout::Margin { horizontal: 0, vertical: 1 }),
+        area.inner(ratatui::layout::Margin {
+            horizontal: 0,
+            vertical: 1,
+        }),
         &mut scrollbar_state,
     );
 }
 
 pub fn render_footer(frame: &mut Frame, area: Rect) {
     let info_footer = Paragraph::new(Text::from(INFO_TEXT))
-        .style(
-            Style::new()
-                .bg(DARK_DARK_GRAY),
-        )
+        .style(Style::new().bg(DARK_DARK_GRAY))
         .centered()
-        .block(
-            Block::bordered()
-                .border_style(Style::new().fg(Color::Gray)),
-        );
+        .block(Block::bordered().border_style(Style::new().fg(Color::Gray)));
     frame.render_widget(info_footer, area);
 }
 
@@ -273,10 +277,10 @@ fn generate_table_rows(app: &'_ mut App) -> Vec<Row<'_>> {
                 talkgroups.len(),
                 sources.len(),
             ]
-                .into_iter()
-                .max()
-                .unwrap_or(1)
-                .max(1);
+            .into_iter()
+            .max()
+            .unwrap_or(1)
+            .max(1);
 
             let row_style = if index % 2 == 0 {
                 Style::default().bg(ROW_BACKGROUND_1)
@@ -289,8 +293,9 @@ fn generate_table_rows(app: &'_ mut App) -> Vec<Row<'_>> {
             Row::new([
                 Cell::from(format!("\n{}", dtg.format("%Y-%m-%d %H:%M:%S").to_string())),
                 Cell::from(format!("\n{:.03} MHz\n", *freq as f32 / 1e6)),
-                Cell::from(
-                    format!("\n{}", metadata
+                Cell::from(format!(
+                    "\n{}",
+                    metadata
                         .color_codes
                         .iter()
                         .collect::<BTreeSet<_>>()
@@ -298,9 +303,10 @@ fn generate_table_rows(app: &'_ mut App) -> Vec<Row<'_>> {
                         .map(|cc| format!("{:?}", cc))
                         .collect::<Vec<_>>()
                         .join("\n"),
-                    )),
-                Cell::from(
-                    format!("\n{}", metadata
+                )),
+                Cell::from(format!(
+                    "\n{}",
+                    metadata
                         .slot_data_types
                         .iter()
                         .collect::<BTreeSet<_>>()
@@ -308,13 +314,13 @@ fn generate_table_rows(app: &'_ mut App) -> Vec<Row<'_>> {
                         .map(|sdt| format!("{:?}", sdt))
                         .collect::<Vec<_>>()
                         .join("\n"),
-                    )),
+                )),
                 Cell::from(format!("\n{}", fids.join("\n"))),
                 Cell::from(format!("\n{}", talkgroups.join("\n"))),
                 Cell::from(format!("\n{}", sources.join("\n"))),
             ])
-                .height(max_items as u16 + 2)
-                .style(row_style)
+            .height(max_items as u16 + 2)
+            .style(row_style)
         })
         .collect::<Vec<Row>>();
     rows
@@ -334,7 +340,6 @@ fn calculate_column_widths(app: &mut App, area: Rect) -> Vec<u16> {
 
         let freq_width = format!("{:.03} MHz", *freq as f32 / 1e6).len() as u16;
         max_widths[1] = max_widths[1].max(freq_width);
-
 
         let cc_width = metadata
             .color_codes
