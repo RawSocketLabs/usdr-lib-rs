@@ -12,6 +12,7 @@ cache:
     - target/
 
 before_script:
+  - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/markpoint/maxlabs/project_finch/hyperpallium/shrike/libsdr.git ../libsdr
   - rustc --version
   - cargo --version
 
@@ -36,6 +37,7 @@ test:
 
 build:
   stage: build
+
   script:
     - cargo build --release --features "usdr,bladerf,rtlsdr" --verbose --all
   artifacts:
