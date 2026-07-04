@@ -1,3 +1,6 @@
+> [!NOTE]
+> **This repository has moved.** Its crate(s) now live in the [`RawSocketLabs/rsl`](https://github.com/RawSocketLabs/rsl) monorepo, developed in lockstep and published independently. This repo is archived (read-only); development continues there.
+
 # usdr
 
 Rust bindings to the USDR software-defined-radio library, via [`cxx`](https://cxx.rs).
